@@ -1,0 +1,167 @@
+--- upstream/jlens_qwen/serve.py (WeZZard/jlens-qwen36@b05cefff)
++++ jlens-cuda/jlens_qwen/serve.py
+@@ -26,7 +26,7 @@
+ from pathlib import Path
+ from typing import Any
+ 
+-import mlx.core as mx
++import torch
+ import numpy as np
+ from fastapi import FastAPI, HTTPException
+ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+@@ -46,7 +46,7 @@
+ # from scripts/measure_bands.py -> data/bands/<lens_stem>.json. None => the
+ # UI falls back to its percentage-split guess (bands_are_fallback).
+ _bands = None
+-_model_id = os.environ.get("JLENS_MODEL", "mlx-community/Qwen3.6-27B-4bit")
++_model_id = os.environ.get("JLENS_MODEL", "Qwen/Qwen3.8-27B")
+ # Lens selection is ENFORCED at startup — there is no silent fallback.
+ # JLENS_PATH=<file> loads that file or refuses to start; JLENS_PATH=none
+ # runs lens-less (logit lens, final layer only) as an explicit choice;
+@@ -76,8 +76,9 @@
+ # without serialising queues or replaying candidates.
+ _adaptive_search_controls: dict[str, "_AdaptiveSearchControlState"] = {}
+ 
+-# GPU work runs on worker threads (MLX releases the GIL during compute,
+-# measured: event-loop max tick 1.1 ms under to_thread vs 1063 ms inline)
++# GPU work runs on worker threads (the CUDA port launches kernels from
++# the worker and releases the GIL while waiting on the GPU; upstream MLX
++# measured event-loop max tick 1.1 ms under to_thread vs 1063 ms inline)
+ # so the event loop stays responsive during generation. The lock
+ # serializes GPU access across concurrent streams, preserving the
+ # pre-thread semantics.
+@@ -233,40 +234,14 @@
+     return sorted(set(layers) | {_model.n_layers - 1})
+ 
+ 
+-def _blocked_topk(logits: mx.array, k: int) -> tuple[mx.array, mx.array]:
++def _blocked_topk(logits: torch.Tensor, k: int) -> tuple[torch.Tensor, torch.Tensor]:
+     """Exact top-k (ids, values) along the last axis, descending.
+ 
+-    Two-stage: per-block maxima -> top-k blocks by max -> exact sort of
+-    the k*C surviving candidates. Exact, not approximate: any top-k
+-    element has at most k-1 elements above it, which occupy at most k-1
+-    other blocks, so its own block ranks within the top-k blocks by max.
+-
+-    Replaces a full argsort over the ~248k vocab: MLX's argsort,
+-    argpartition, and topk all run a full sort on GPU (measured ~14.7 ms
+-    per generated token at [64,1,248k] vs ~0.8 ms for this scheme; see
+-    docs/perf/LEDGER.md H1). Values match argsort bit-for-bit; ordering
+-    at exact score ties may differ, which the decode gate's golden
+-    readout pins.
++    Upstream (MLX) used a two-stage blocked scheme because MLX's argsort /
++    topk run a full sort on GPU; torch.topk on CUDA is already a fast
++    selection kernel, so the CUDA port calls it directly.
+     """
+-    *lead, V = logits.shape
+-    B = 1024                      # blocks -> C = ceil(V/B) candidates each
+-    C = (V + B - 1) // B
+-    pad = B * C - V
+-    x = logits
+-    if pad:
+-        fill = mx.full((*lead, pad), -float("inf"), dtype=x.dtype)
+-        x = mx.concatenate([x, fill], axis=-1)
+-    xb = x.reshape(*lead, B, C)
+-    bmax = xb.max(axis=-1)                                     # [..., B]
+-    top_blocks = mx.argsort(bmax, axis=-1)[..., -k:]           # [..., k]
+-    cand = mx.take_along_axis(
+-        xb, mx.broadcast_to(top_blocks[..., None], (*lead, k, C)), axis=-2
+-    )                                                          # [..., k, C]
+-    flat = cand.reshape(*lead, k * C)
+-    sub = mx.argsort(flat, axis=-1)[..., -k:][..., ::-1]       # [..., k]
+-    vals = mx.take_along_axis(flat, sub, axis=-1)
+-    blk = mx.take_along_axis(top_blocks, sub // C, axis=-1)
+-    ids = blk * C + (sub % C)
++    vals, ids = torch.topk(logits, k, dim=-1, largest=True, sorted=True)
+     return ids, vals
+ 
+ 
+@@ -276,12 +251,12 @@
+ _tok_str_cache: dict[int, str] = {}
+ 
+ 
+-def _sample_tok(logits: mx.array, temp: float) -> int:
+-    lf = logits.astype(mx.float32)
++def _sample_tok(logits: torch.Tensor, temp: float) -> int:
++    lf = logits.float()
+     if temp == 0:
+-        return int(mx.argmax(lf).tolist())
+-    # categorical() takes unnormalized logits, NOT probabilities.
+-    return int(mx.random.categorical(lf / temp).tolist())
++        return int(torch.argmax(lf).item())
++    probs = torch.softmax(lf / temp, dim=-1)
++    return int(torch.multinomial(probs, 1).item())
+ 
+ 
+ _WS_GLYPHS = {" ": "␣", "\n": "⏎", "\t": "⇥"}
+@@ -340,8 +315,9 @@
+     return s
+ 
+ 
++@torch.inference_mode()
+ def _readout_at_positions(
+-    acts: dict[int, mx.array],
++    acts: dict[int, torch.Tensor],
+     positions: list[int],
+     layers: list[int],
+     top_n: int,
+@@ -370,17 +346,17 @@
+     # tensor is the ceiling (P=32 -> ~2GB).
+     for c0 in range(0, len(positions), READOUT_CHUNK):
+         chunk = positions[c0:c0 + READOUT_CHUNK]
+-        pos_idx = mx.array(chunk)
++        pos_idx = torch.tensor(chunk, device=_model.device)
+         t = perf.begin()
+         hs = []
+         for layer in layers:
+-            h = acts[layer][0][pos_idx].astype(mx.float32)  # [P, D]
++            h = acts[layer][0][pos_idx].float()  # [P, D]
+             if _lens is not None and layer in _lens.jacobians:
+                 h = _lens.transport(h, layer)
+             hs.append(h)
+-        hstack = mx.stack(hs)  # [L, P, D]
++        hstack = torch.stack(hs)  # [L, P, D]
+         t = perf.mark(t, "readout.transport", hstack)
+-        logits = _model.unembed(_model.final_norm(hstack)).astype(mx.float32)
++        logits = _model.unembed(_model.final_norm(hstack)).float()
+         t = perf.mark(t, "readout.unembed", logits)
+         order, vals = _blocked_topk(logits, top_n)  # [L, P, n]
+         t = perf.mark(t, "readout.topk", order, vals)
+@@ -419,8 +395,6 @@
+ 
+     def _forward_acts():
+         _, acts = _model.forward(input_ids, capture_layers=record)
+-        for l in record:
+-            mx.eval(acts[l])
+         return acts
+ 
+     async with _gpu_lock:
+@@ -1346,8 +1320,8 @@
+                 # Simple approach: find the LAST <|im_start|> in the sequence,
+                 # then skip past the role + \n, that's the content start.
+                 # The content end is the next <|im_end|> after that, or end of seq.
+-                im_start_id = 248045  # <|im_start|>
+-                im_end_id = 248046    # <|im_end|>
++                im_start_id = tok.convert_tokens_to_ids("<|im_start|>")  # 248045 on Qwen3.x
++                im_end_id = tok.convert_tokens_to_ids("<|im_end|>")      # 248046
+                 # Find the last <|im_start|>
+                 last_im_start = -1
+                 for i in range(len(formatted_ids) - 1, -1, -1):
+@@ -2578,7 +2552,7 @@
+     stop_reason = "max_tokens"
+     decode_started = time.perf_counter()
+     for _ in range(max_tokens):
+-        token_id = int(mx.argmax(logits.astype(mx.float32)).tolist())
++        token_id = int(torch.argmax(logits.float()).item())
+         if token_id in eos_ids:
+             eos = True
+             stop_reason = "eos"
+@@ -4394,7 +4368,7 @@
+         logits, _ = session.extend(pids)
+         out: list[int] = []
+         for _ in range(req.max_tokens):
+-            t = int(mx.argmax(logits.astype(mx.float32)).tolist())
++            t = int(torch.argmax(logits.float()).item())
+             if t == eos_id:
+                 return out, True, "eos"
+             out.append(t)

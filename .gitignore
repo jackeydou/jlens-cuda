@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+logs/
+data/lens/*
+!data/lens/.gitkeep
+data/corpus/*.jsonl
+data/sessions/
+data/bands/*.json
+.claude/launch.json
