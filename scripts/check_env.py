@@ -12,6 +12,7 @@ Run:  python scripts/check_env.py
 from __future__ import annotations
 
 import importlib
+import os
 import sys
 
 
@@ -21,6 +22,37 @@ def _version(mod: str) -> str:
         return getattr(m, "__version__", "installed")
     except Exception as e:  # noqa: BLE001
         return f"NOT AVAILABLE ({type(e).__name__}: {e})"
+
+
+def _check_gdn_backward() -> bool:
+    """Check FLA's Hopper workaround before loading the full model.
+
+    This checks backend prerequisites, not kernel execution or correctness.
+    """
+    try:
+        utils = importlib.import_module("fla.utils")
+        affected = (utils.IS_NVIDIA_HOPPER and utils.TRITON_ABOVE_3_4_0
+                    and not utils.TRITON_ABOVE_3_7_1)
+        if not affected:
+            return True
+        backend = importlib.import_module("fla.ops.common.backends.tilelang").TileLangBackend
+        if os.environ.get("FLA_DISABLE_BACKEND_DISPATCH") == "1":
+            reason = "FLA_DISABLE_BACKEND_DISPATCH=1 disables the workaround"
+        elif not backend.is_enabled():
+            reason = "FLA_TILELANG=0 disables the workaround"
+        elif not backend.is_available():
+            reason = "TileLang is missing or no usable nvcc was found"
+        else:
+            importlib.import_module("tilelang")
+            print("GDN backward: TileLang workaround prerequisites available "
+                  "(run verify_fit.py to validate the kernels)")
+            return True
+    except Exception as e:  # noqa: BLE001
+        reason = f"cannot check/import the GDN backward backend ({type(e).__name__}: {e})"
+    print(f"\n[FAIL] GDN backward: {reason}. Hopper with Triton >=3.4.0,<3.7.1 "
+          "needs TileLang and a host CUDA toolkit with nvcc. "
+          "Sync the locked environment, load CUDA 12.8, and rerun this check.")
+    return False
 
 
 def main() -> int:
@@ -34,6 +66,7 @@ def main() -> int:
     print(f"fla           {_version('fla')}")
     print(f"causal_conv1d {_version('causal_conv1d')}")
     print(f"triton        {_version('triton')}")
+    print(f"tilelang      {_version('tilelang')}")
 
     if not torch.cuda.is_available():
         print("\n[FAIL] torch.cuda.is_available() is False — are you on a GPU node?")
@@ -46,6 +79,7 @@ def main() -> int:
 
     from transformers.models.qwen3_5 import modeling_qwen3_5 as mq
 
+    gdn_optimized = False
     for name in ("torch_chunk_gated_delta_rule", "torch_recurrent_gated_delta_rule",
                  "causal_conv1d_fn", "causal_conv1d_update"):
         fn = getattr(mq, name)
@@ -58,14 +92,19 @@ def main() -> int:
         where = (f"{chosen.__module__}.{getattr(chosen, '__name__', chosen)}"
                  if chosen is not None else "transformers torch fallback")
         print(f"{name:34s} -> {where}")
-        if name == "torch_chunk_gated_delta_rule" and chosen is None:
-            ok = False
+        if name == "torch_chunk_gated_delta_rule":
+            gdn_optimized = chosen is not None
+            ok = gdn_optimized
+
+    if gdn_optimized and not _check_gdn_backward():
+        return 1
 
     if not ok:
         print("\n[WARN] Gated DeltaNet is on the slow torch fallback. "
               "`pip install flash-linear-attention` before fitting.")
     else:
-        print("\n[OK] fla Triton kernels will be used for Gated DeltaNet.")
+        print("\n[OK] optimized Gated DeltaNet backend prerequisites available; "
+              "forward/backward kernels still need verification.")
     return 0
 
 

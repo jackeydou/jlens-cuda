@@ -1,8 +1,9 @@
 """Numerical tests of the torch backend on a tiny random Qwen3.5 model.
 
-No weights download, runs on CPU in seconds (the GDN layers use the
-transformers torch fallback here; on the H200 the same code runs fla's
-Triton kernels). Checks:
+No weights download, runs on CPU in seconds. The fixture explicitly uses
+transformers' torch GDN and convolution fallbacks, even when FLA or
+causal-conv1d is installed. Production CUDA runs use the optimized kernels.
+Checks:
 
 - StreamSession chunked, cached decoding == one uncached full forward
   (per-layer residuals and logits), for the hybrid GDN + attention cache.
@@ -15,11 +16,14 @@ Triton kernels). Checks:
 
 from __future__ import annotations
 
+import inspect
+
 import pytest
 import torch
 
 transformers = pytest.importorskip("transformers")
 from transformers.models.qwen3_5 import Qwen3_5ForCausalLM, Qwen3_5TextConfig  # noqa: E402
+from transformers.models.qwen3_5 import modeling_qwen3_5 as mq  # noqa: E402
 
 from jlens_qwen.lens import JacobianLens  # noqa: E402
 from jlens_qwen.model import LayerEdit, TorchLensModel  # noqa: E402
@@ -73,7 +77,23 @@ def _tiny_config() -> Qwen3_5TextConfig:
 
 
 @pytest.fixture(scope="module")
-def tiny():
+def cpu_kernels():
+    # These decorators select installed accelerator packages at import time,
+    # even for CPU tensors. Unwrap all dispatch layers to reach the torch
+    # references; restore them after this module so GPU tests keep using FLA.
+    with pytest.MonkeyPatch.context() as patch:
+        for name in (
+            "torch_chunk_gated_delta_rule",
+            "torch_recurrent_gated_delta_rule",
+            "causal_conv1d_fn",
+            "causal_conv1d_update",
+        ):
+            patch.setattr(mq, name, inspect.unwrap(getattr(mq, name)))
+        yield
+
+
+@pytest.fixture(scope="module")
+def tiny(cpu_kernels):
     torch.manual_seed(0)
     hf = Qwen3_5ForCausalLM(_tiny_config()).float().eval()
     # Random init leaves RMSNorm weights at 0 (=> scale 1) and tiny

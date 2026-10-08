@@ -7,12 +7,18 @@ retargeted to **`Qwen/Qwen3.8-27B` in bf16** on H200 GPUs.
 
 **Step-by-step tutorial (中文): [docs/TUTORIAL.md](docs/TUTORIAL.md)**
 
+**HPC H200 runbook: [docs/HPC_H200_RUNBOOK.md](docs/HPC_H200_RUNBOOK.md).**
+Linux uses the official PyTorch **2.11.0 + CUDA 12.8** wheel and Triton 3.6.0.
+H200 GDN backward uses FLA's TileLang workaround for a Hopper/Triton bug;
+load a host CUDA 12.8 toolkit with `nvcc` before fitting (see the runbook).
+PyPI's torch 2.14.0 + CUDA 13 build needs a newer driver than the HPC node reported here.
+
 ## What changed vs. upstream
 
 | | upstream (MLX) | this port (CUDA) |
 |---|---|---|
 | model | `mlx-community/Qwen3.x-27B-4bit` | `Qwen/Qwen3.8-27B`, bf16, HF transformers |
-| GDN backward | custom Metal VJP kernel | flash-linear-attention Triton kernels |
+| GDN backward | custom Metal VJP kernel | FLA kernels, with TileLang for the affected Hopper backward op |
 | fit estimator | analytic per-layer `M_l`, chain `J_{l-1} = J_l M_l` | Anthropic `jlens.fit` (exact end-to-end Jacobian, paper's estimator) |
 | fit cost | ~7–20 min / prompt on an M4 | measure with `scripts/verify_fit.py`; shards across GPUs |
 | web app | `serve.py` + `web/index.html` | the same files; only the MLX touchpoints in `serve.py` changed |
