@@ -20,6 +20,9 @@ dependencies = [
     "jlens @ git+https://github.com/anthropics/jacobian-lens@581d398613e5602a5af361e1c34d3a92ea82ba8e",
     # Triton kernels (with backward) for the 48 Gated DeltaNet layers.
     "flash-linear-attention[cuda]>=0.5 ; sys_platform == 'linux'",
+    # Hopper GDN backward is incorrect with torch 2.11's Triton 3.6.0.
+    # FLA dispatches the affected op to TileLang; a host nvcc is also required.
+    "tilelang>=0.1.15,<0.2 ; sys_platform == 'linux'",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +42,19 @@ packages = ["jlens_qwen"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.uv]
+# The target HPC H200 nodes expose CUDA driver API 12.8. PyPI torch
+# 2.14 ships CUDA 13, so use the official cu128 build on Linux.
+constraint-dependencies = ["torch==2.11.0 ; sys_platform == 'linux'"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128", marker = "sys_platform == 'linux'" }]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
