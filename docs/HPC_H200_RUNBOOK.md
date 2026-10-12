@@ -497,6 +497,23 @@ ssh -N -o ExitOnForwardFailure=yes \
 scancel SERVE_JOBID
 ```
 
+### 不占 GPU 编辑 Tools / cases
+
+准备 agent case（system prompt、tool schema、mock 返回值）不需要 GPU。在 **登录节点** 用 `JLENS_NO_MODEL=1` 启动：不加载模型和 lens，几秒内启动，UI、已保存的 session 和 Tools 编辑器可用，生成类接口返回 503。
+
+```bash
+cd /scratch/$USER/jlens-cuda
+JLENS_NO_MODEL=1 uv run --no-sync uvicorn jlens_qwen.serve:app --host 127.0.0.1 --port 8765
+```
+
+Mac 上转发到登录节点即可（不需要 `-J`）：
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes -L 8765:127.0.0.1:8765 YOUR_USER@HPC_LOGIN
+```
+
+case 保存在共享文件系统的 `data/cases/<id>.json`；GPU 服务每次运行都从磁盘读取 case，所以之后起 GPU 服务（或 GPU 服务已在运行时）直接用即可，无需重启。若登录节点不允许常驻进程，也可以在 Mac 上 `uv sync` 后同样启动，再把 `data/cases/*.json` 用 git 或 `scp` 同步到 HPC。
+
 ## 10. 完成任务应保留的证据
 
 | 证据 | 要回答的问题 |

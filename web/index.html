@@ -3256,6 +3256,9 @@ async function loadInfo() {
   try {
     const meta = await apiGetMeta();
     state.modelId = (meta.model && meta.model.model_id) || 'unknown model';
+    // JLENS_NO_MODEL server: cases and sessions only, no generation.
+    state.modelLoaded = !(meta.model && meta.model.model_loaded === false);
+    updateToolsButton();
     // layerIntervenable() also admits the final layer (identity transport),
     // but /api/lens only reports fitted source layers. Carry model depth
     // alongside the lens metadata so that layer stays addressable.
@@ -8462,8 +8465,9 @@ function updateToolsButton() {
   $('tools-btn').title = on
     ? `Agent mode: case ${state.agent.caseId} (${state.agent.toolNames.join(', ') || 'no tools'})`
     : 'Agent tools: tool schemas and mock results';
-  $('chat-editor').dataset.placeholder = on
-    ? `Message the agent (case ${state.agent.caseId})…` : 'Message the model…';
+  $('chat-editor').dataset.placeholder = state.modelLoaded === false
+    ? 'No model loaded (JLENS_NO_MODEL) — edit Tools here; chat needs a GPU server'
+    : on ? `Message the agent (case ${state.agent.caseId})…` : 'Message the model…';
 }
 
 async function fetchCase(caseId) {
