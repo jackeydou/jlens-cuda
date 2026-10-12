@@ -38,6 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from jlens_qwen.model import load as load_model
 from jlens_qwen.lens import JacobianLens
 from jlens_qwen import perf
+from jlens_qwen import agent as agent_lib
 
 # Globals (loaded once at startup).
 _model = None
@@ -65,6 +66,8 @@ if _app_mode not in ("active", "presentation"):
     _app_mode = "active"
 _repo_root = Path(__file__).resolve().parent.parent
 _sessions_dir = _repo_root / "data" / "sessions"
+# Agent cases (tools + mock results) authored in the UI, one JSON per case.
+_cases_dir = Path(os.environ.get("JLENS_CASES_DIR", _repo_root / "data" / "cases"))
 
 # Pause/resume control for the active generation stream.
 # The generation loop checks this event before each token.
@@ -992,6 +995,33 @@ def _token_segments(tok, ids: list[int]) -> list[str]:
     return segments
 
 
+def _compile_resolved_edits(resolved_specs: list[dict[str, Any]],
+                            gen_from_pos: int | None) -> list:
+    """Compile validated intervention specs into LayerEdits.
+
+    "generation"-scoped specs start at ``gen_from_pos`` (the first generated
+    position of this request); with no generation they are inert.
+    """
+    from .interventions import compile_edits
+    edits = []
+    for r in resolved_specs:
+        from_pos = r["from_position"]
+        if r["segment"] == "generation":
+            if gen_from_pos is None:
+                continue
+            from_pos = gen_from_pos
+        edits.extend(compile_edits(
+            _lens, _model,
+            mode=r["mode"], layers=r["layers"],
+            token_id=r["token_id"], target_id=r["target_id"],
+            alpha=r["alpha"], positions=r["positions"],
+            from_pos=from_pos,
+            ablate_token_ids=r["ablate_token_ids"],
+            label=r["label"],
+        ))
+    return edits
+
+
 def _sse(event: str, data: dict) -> bytes:
     return f"event: {event}\n".encode() + b"data: " + json.dumps(data).encode() + b"\n\n"
 
@@ -1018,6 +1048,8 @@ class SessionSaveRequest(BaseModel):
     selectedInterventionRecipeId: str | None = None
     appliedInterventions: list[dict[str, Any]] = []
     compare: dict[str, Any] | None = None
+    # Agent mode: the frozen case (+ hash) the last agent stream ran with.
+    agentRun: dict[str, Any] | None = None
     # Fire-and-forget full-fidelity save at stream end. localStorage is
     # quota-trimmed (~4.2MB) and silently loses old snapshots on long
     # conversations; the autosave keeps the complete state server-side
@@ -1273,31 +1305,11 @@ async def chat_stream(req: ChatStreamRequest):
                         gen_from_pos = len(
                             pids if isinstance(pids, list) else list(pids))
 
-                def _compile_all():
-                    from .interventions import compile_edits
-                    edits = []
-                    for r in resolved_specs:
-                        from_pos = r["from_position"]
-                        if r["segment"] == "generation":
-                            if gen_from_pos is None:
-                                # Nothing generated this request -> inert.
-                                continue
-                            from_pos = gen_from_pos
-                        edits.extend(compile_edits(
-                            _lens, _model,
-                            mode=r["mode"], layers=r["layers"],
-                            token_id=r["token_id"], target_id=r["target_id"],
-                            alpha=r["alpha"], positions=r["positions"],
-                            from_pos=from_pos,
-                            ablate_token_ids=r["ablate_token_ids"],
-                            label=r["label"],
-                        ))
-                    return edits
-
                 # Vector compile is a handful of matvecs against the
                 # resident fp16 J stack — never the [vocab, D] matrix.
                 async with _gpu_lock:
-                    session.set_edits(await asyncio.to_thread(_compile_all))
+                    session.set_edits(await asyncio.to_thread(
+                        _compile_resolved_edits, resolved_specs, gen_from_pos))
 
             # We build the formatted token sequence using the chat template.
             # For each message, the template wraps it as:
@@ -1521,6 +1533,442 @@ async def chat_stream(req: ChatStreamRequest):
         finally:
             # Clean up the pause event when the stream ends.
             _pause_events.pop(stream_id, None)
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Agent mode: cases (tools + mock results as data) and the multi-step loop.
+#
+# A case lives in data/cases/<id>.json and is authored from the UI, so new
+# tools never need server code (see jlens_qwen/agent.py). /api/agent_stream
+# runs generate -> parse XML tool calls -> mock/execute -> feed the
+# <tool_response> block -> generate ... inside ONE cached StreamSession, so
+# the J-lens also reads out how the model takes in each tool result.
+# ---------------------------------------------------------------------------
+
+# Manual tool results the UI owes a waiting agent stream:
+# {stream_id: {call_id: Future[str]}}.
+_agent_waits: dict[str, dict[str, asyncio.Future]] = {}
+
+
+def _case_path(case_id: str) -> Path:
+    if not agent_lib.CASE_ID_RE.match(case_id or ""):
+        raise HTTPException(400, "invalid case id")
+    return _cases_dir / f"{case_id}.json"
+
+
+def _load_case(case_id: str) -> dict:
+    path = _case_path(case_id)
+    if not path.exists():
+        raise HTTPException(404, f"case {case_id!r} not found")
+    try:
+        return agent_lib.validate_case(json.loads(path.read_text()))
+    except (json.JSONDecodeError, agent_lib.CaseError) as e:
+        raise HTTPException(400, f"case {case_id!r} is invalid: {e}") from None
+
+
+@app.get("/api/cases")
+async def list_cases():
+    cases = []
+    for path in sorted(_cases_dir.glob("*.json")) if _cases_dir.exists() else []:
+        try:
+            case = agent_lib.validate_case(json.loads(path.read_text()))
+        except Exception as e:
+            cases.append({"id": path.stem, "name": path.stem, "error": str(e)})
+            continue
+        cases.append({
+            "id": case["id"],
+            "name": case["name"],
+            "description": case["description"],
+            "tools": [t["name"] for t in agent_lib.enabled_tools(case)],
+            "hash": agent_lib.case_hash(case),
+        })
+    return {"cases": cases}
+
+
+@app.get("/api/cases/{case_id}")
+async def get_case(case_id: str):
+    case = _load_case(case_id)
+    return {"case": case, "hash": agent_lib.case_hash(case)}
+
+
+@app.put("/api/cases/{case_id}")
+async def put_case(case_id: str, body: dict[str, Any]):
+    _require_active_mode()
+    path = _case_path(case_id)
+    try:
+        case = agent_lib.validate_case({**body, "id": case_id})
+    except agent_lib.CaseError as e:
+        raise HTTPException(400, str(e)) from None
+    _cases_dir.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(case, ensure_ascii=False, indent=2) + "\n")
+    return {"case": case, "hash": agent_lib.case_hash(case),
+            "staged": _stage_session_file(path)}
+
+
+@app.delete("/api/cases/{case_id}")
+async def delete_case(case_id: str):
+    _require_active_mode()
+    path = _case_path(case_id)
+    if not path.exists():
+        raise HTTPException(404, f"case {case_id!r} not found")
+    return {"id": case_id, "deleted": True, "staged": _remove_session_file(path)}
+
+
+class AgentMessage(BaseModel):
+    role: str  # "user" | "assistant" | "tool"
+    content: str
+    name: str | None = None
+
+
+class AgentStreamRequest(BaseModel):
+    case_id: str
+    messages: list[AgentMessage]
+    temp: float = 0.0
+    top_n: int = 10
+    # Optional cap on the case's run.max_tokens_per_step (UI setting).
+    max_tokens: int | None = None
+    interventions: list[InterventionSpec] = []
+
+
+class AgentToolResultRequest(BaseModel):
+    stream_id: str
+    call_id: str
+    content: str
+
+
+def _slice_row(row: dict[int, dict], a: int, b: int) -> dict[int, dict]:
+    return {l: {k: v[a:b] for k, v in c.items()} for l, c in row.items()}
+
+
+def _http_tool(tool: dict, call: dict, case_id: str) -> tuple[str, str | None]:
+    import urllib.request
+
+    body = json.dumps({"name": call["name"], "arguments": call["arguments"],
+                       "case_id": case_id}, ensure_ascii=False).encode()
+    request = urllib.request.Request(
+        tool["mock"]["url"], data=body, method="POST",
+        headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=tool["mock"]["timeout_s"]) as r:
+            return r.read().decode("utf-8", "replace"), None
+    except Exception as e:
+        return "", str(e)
+
+
+@app.post("/api/agent_tool_result")
+async def agent_tool_result(req: AgentToolResultRequest):
+    """Deliver a manually typed tool result to a waiting agent stream."""
+    _require_active_mode()
+    fut = _agent_waits.get(req.stream_id, {}).get(req.call_id)
+    if fut is None or fut.done():
+        raise HTTPException(404, f"no pending call {req.call_id!r} on {req.stream_id!r}")
+    fut.set_result(req.content)
+    return {"stream_id": req.stream_id, "call_id": req.call_id, "accepted": True}
+
+
+@app.post("/api/agent_stream")
+async def agent_stream(req: AgentStreamRequest):
+    """Multi-step tool-calling run of one case, streamed as SSE.
+
+    Same `snapshot` frames as /api/chat_stream (plus `step`, `segment` and
+    role "tool"), and agent events: `step_start`, `step_done` (parsed turn),
+    `tool_call`, `tool_waiting` (manual result needed, answer via
+    /api/agent_tool_result), `tool_result`, `ledger_check`, `done`.
+
+    Every token fed to the session is recorded (the ledger); the tool
+    suffix is built exactly as the Qwen3.x template renders it, and
+    `ledger_check` reports whether re-rendering the final transcript
+    reproduces the ledger (i.e. whether a replay keeps every position).
+    """
+    _require_active_mode()
+    if _model is None:
+        raise HTTPException(503, "model not loaded")
+    case = _load_case(req.case_id)
+    chash = agent_lib.case_hash(case)
+    msgs = [{"role": m.role, "content": m.content, **({"name": m.name} if m.name else {})}
+            for m in req.messages]
+    if not msgs or msgs[-1]["role"] not in ("user", "tool"):
+        raise HTTPException(400, "messages must end with a user or tool message")
+    bad = sorted({m["role"] for m in msgs} - {"user", "assistant", "tool"})
+    if bad:
+        raise HTTPException(400, f"unsupported roles {bad} (system comes from the case)")
+    tok = _model.tokenizer
+    try:
+        prompt_ids, spans = agent_lib.render_prompt(tok, case, msgs)
+    except Exception as e:
+        raise HTTPException(400, f"cannot render prompt: {e}") from None
+    resolved_specs: list[dict[str, Any]] = []
+    if req.interventions:
+        resolved_specs = _validate_and_resolve_specs(
+            req.interventions, _lens, tok, _model.n_layers)
+
+    import uuid
+
+    tools = agent_lib.enabled_tools(case)
+    tools_by_name = {t["name"]: t for t in tools}
+    run = case["run"]
+    thinking = run["enable_thinking"]
+    max_tokens = run["max_tokens_per_step"]
+    if req.max_tokens is not None:
+        max_tokens = max(1, min(max_tokens, req.max_tokens))
+    layers = _record_layers()
+    top_n = req.top_n
+    temp = req.temp
+    eos_id = getattr(tok, "eos_token_id", None)
+    think_start = tok.convert_tokens_to_ids("<think>")
+    think_end = tok.convert_tokens_to_ids("</think>")
+    call_open = tok.convert_tokens_to_ids("<tool_call>")
+    call_close = tok.convert_tokens_to_ids("</tool_call>")
+
+    stream_id = str(uuid.uuid4())[:8]
+    pause_event = asyncio.Event()
+    pause_event.set()
+    _pause_events[stream_id] = pause_event
+    waits: dict[str, asyncio.Future] = {}
+    _agent_waits[stream_id] = waits
+
+    async def gen():
+        snapshot_id = 0
+        ledger: list[int] = []
+        transcript = [dict(m) for m in msgs]
+        mock_state = agent_lib.MockState()
+        stop_reason = None
+        n_steps = 0
+        session = _model.make_stream(capture_layers=layers)
+
+        async def feed(ids: list[int], local: list[int], sample: bool = True):
+            """Extend the session; readout at chunk-local positions; sample."""
+            nxt = None
+            async with _gpu_lock:
+                logits, acts = await asyncio.to_thread(session.extend, ids)
+                row = await asyncio.to_thread(
+                    _readout_at_positions, acts, local, layers, top_n)
+                if sample:
+                    nxt = await asyncio.to_thread(_sample_tok, logits, temp)
+            del logits, acts
+            ledger.extend(ids)
+            return row, nxt
+
+        def history_segments(ids: list[int]) -> list[str]:
+            """reasoning / tool_call / content per token of a past turn."""
+            out = []
+            in_reason, in_call = bool(ids) and ids[0] == think_start, False
+            for tid in ids:
+                if in_reason:
+                    out.append("reasoning")
+                    in_reason = tid != think_end
+                elif tid == call_open or in_call:
+                    out.append("tool_call")
+                    in_call = tid != call_close
+                else:
+                    out.append("content")
+            return out
+
+        def snap(**fields) -> bytes:
+            nonlocal snapshot_id
+            snapshot_id += 1
+            return _sse("snapshot", {"snapshot_id": snapshot_id, **fields})
+
+        yield _sse("stream_start", {
+            "stream_id": stream_id,
+            "mode": "agent",
+            "case": case,
+            "case_hash": chash,
+            "interventions": resolved_specs,
+            "prompt_tokens": len(prompt_ids),
+        })
+        try:
+            if resolved_specs:
+                async with _gpu_lock:
+                    session.set_edits(await asyncio.to_thread(
+                        _compile_resolved_edits, resolved_specs, len(prompt_ids)))
+
+            # Prefill: one chunk per client message (content readout only).
+            for i, (a, b) in enumerate(spans):
+                if b <= a:
+                    continue
+                start = len(ledger)
+                row, _ = await feed(prompt_ids[start:b], [p - start for p in range(a, b)],
+                                    sample=False)
+                extra = ({"segments": history_segments(prompt_ids[a:b])}
+                         if msgs[i]["role"] == "assistant" else {})
+                yield snap(msg_idx=i, token_idx=-1, role=msgs[i]["role"],
+                           name=msgs[i].get("name"), prefill_pos=a, n_tokens=b - a,
+                           token_strs=_token_segments(tok, prompt_ids[a:b]), **extra,
+                           grid={"layers": layers, "positions": list(range(a, b)),
+                                 "cells": row})
+                await asyncio.sleep(0)
+            rest = prompt_ids[len(ledger):]
+            row, next_tok = await feed(rest, [len(rest) - 1])
+            msg_idx = len(msgs)
+            yield snap(msg_idx=msg_idx, token_idx=-1, role="assistant",
+                       prefill_pos=len(ledger) - 1, n_tokens=0, token_strs=[],
+                       grid={"layers": layers, "positions": [len(ledger) - 1],
+                             "cells": row})
+
+            for step in range(1, run["max_steps"] + 1):
+                n_steps = step
+                yield _sse("step_start", {"step": step, "msg_idx": msg_idx})
+                gen_ids: list[int] = []
+                gen_prev = ""
+                in_reason, in_call = thinking, False
+                step_stop = "eos" if next_tok == eos_id else None
+                while step_stop is None and len(gen_ids) < max_tokens:
+                    await pause_event.wait()
+                    pos = len(ledger)
+                    tid = next_tok
+                    row, next_tok = await feed([tid], [0])
+                    if in_reason:
+                        segment = "reasoning"
+                        in_reason = tid != think_end
+                    elif tid == call_open or in_call:
+                        segment = "tool_call"
+                        in_call = tid != call_close
+                    else:
+                        segment = "content"
+                    gen_ids.append(tid)
+                    full = tok.decode(gen_ids)
+                    stable = full.rstrip("�")
+                    tok_str = stable[len(gen_prev):] if len(stable) >= len(gen_prev) else ""
+                    gen_prev = stable if len(stable) >= len(gen_prev) else gen_prev
+                    yield snap(msg_idx=msg_idx, token_idx=len(gen_ids) - 1,
+                               role="assistant", token=tok_str, token_id=tid, pos=pos,
+                               step=step, segment=segment,
+                               grid={"layers": layers, "positions": [pos], "cells": row})
+                    if resolved_specs and _intervention_repetition(gen_ids):
+                        step_stop = "repetition"
+                        break
+                    if next_tok == eos_id:
+                        step_stop = "eos"
+                    await asyncio.sleep(0)
+                step_stop = step_stop or "max_tokens"
+
+                text = tok.decode(gen_ids)
+                parsed = agent_lib.parse_assistant(text, tools)
+                transcript.append({"role": "assistant", "content": text})
+                calls = parsed.tool_calls
+                for k, c in enumerate(calls):
+                    # Unique across streams: the UI keeps every turn's calls.
+                    c["id"] = f"{stream_id}-s{step}c{k}"
+                yield _sse("step_done", {
+                    "step": step, "msg_idx": msg_idx, "stop_reason": step_stop,
+                    "n_tokens": len(gen_ids), "reasoning": parsed.reasoning,
+                    "content": parsed.content, "trailing_text": parsed.trailing_text,
+                    "tool_calls": [{k: c[k] for k in ("id", "name", "arguments", "error")}
+                                   for c in calls],
+                })
+                if step_stop != "eos":
+                    stop_reason = step_stop
+                    break
+                if not calls:
+                    stop_reason = "final"
+                    break
+                if step == run["max_steps"]:
+                    stop_reason = "max_steps"
+                    break
+
+                results: list[tuple[dict, str, str]] = []
+                for c in calls:
+                    yield _sse("tool_call", {
+                        "call_id": c["id"], "step": step, "msg_idx": msg_idx,
+                        "name": c["name"], "arguments": c["arguments"],
+                        "raw": c["raw"], "error": c["error"],
+                    })
+                    t0 = time.perf_counter()
+                    if c["error"]:
+                        content, source = f"Error: {c['error']}", "error"
+                    else:
+                        tool = tools_by_name[c["name"]]
+                        outcome = agent_lib.resolve_mock(tool, c["arguments"], mock_state)
+                        if outcome.kind == "miss":
+                            yield _sse("tool_result", {
+                                "call_id": c["id"], "step": step, "name": c["name"],
+                                "arguments": c["arguments"], "content": None,
+                                "source": "miss",
+                                "error": "no fixture matched these arguments (on_miss=error)",
+                            })
+                            stop_reason = "fixture_miss"
+                            break
+                        if outcome.kind == "manual":
+                            waits[c["id"]] = asyncio.get_running_loop().create_future()
+                            yield _sse("tool_waiting", {
+                                "call_id": c["id"], "step": step, "name": c["name"],
+                                "arguments": c["arguments"],
+                            })
+                            try:
+                                content, source = await waits[c["id"]], "manual"
+                            finally:
+                                waits.pop(c["id"], None)
+                        elif outcome.kind == "http":
+                            content, err = await asyncio.to_thread(
+                                _http_tool, tool, c, case["id"])
+                            source = "http"
+                            if err:
+                                content, source = f"Error: {err}", "http_error"
+                        else:
+                            content, source = outcome.content, outcome.source
+                    yield _sse("tool_result", {
+                        "call_id": c["id"], "step": step, "name": c["name"],
+                        "arguments": c["arguments"], "content": content,
+                        "source": source,
+                        "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
+                    })
+                    results.append((c, content, source))
+                if stop_reason == "fixture_miss":
+                    break
+
+                # <|im_end|> of this turn + the <tool_response> block + the
+                # next generation prompt, as one chunk.
+                suffix, char_spans = agent_lib.tool_results_suffix(
+                    [r[1] for r in results], thinking)
+                sids, soffs = agent_lib.encode_with_offsets(tok, suffix)
+                tspans = agent_lib.char_to_token_spans(soffs, char_spans)
+                base = len(ledger)
+                local = [p for a, b in tspans for p in range(a, b)] + [len(sids) - 1]
+                row, next_tok = await feed(sids, local)
+                o = 0
+                for k, ((c, content, source), (a, b)) in enumerate(zip(results, tspans)):
+                    yield snap(msg_idx=msg_idx + 1 + k, token_idx=-1, role="tool",
+                               name=c["name"], tool_call_id=c["id"], step=step,
+                               prefill_pos=base + a, n_tokens=b - a,
+                               token_strs=_token_segments(tok, sids[a:b]),
+                               grid={"layers": layers,
+                                     "positions": list(range(base + a, base + b)),
+                                     "cells": _slice_row(row, o, o + b - a)})
+                    o += b - a
+                    transcript.append({"role": "tool", "content": content, "name": c["name"]})
+                msg_idx += 1 + len(results)
+                yield snap(msg_idx=msg_idx, token_idx=-1, role="assistant",
+                           prefill_pos=len(ledger) - 1, n_tokens=0, token_strs=[],
+                           grid={"layers": layers, "positions": [len(ledger) - 1],
+                                 "cells": _slice_row(row, o, o + 1)})
+                await asyncio.sleep(0)
+
+            try:
+                rendered, _ = agent_lib.render_prompt(tok, case, transcript)
+                div = agent_lib.first_divergence(ledger, rendered)
+                check = {"match": div is None, "first_divergence": div,
+                         "ledger_len": len(ledger)}
+                if div is not None:
+                    check["ledger_text"] = tok.decode(ledger[max(0, div - 8):div + 8])
+                    check["template_text"] = tok.decode(rendered[max(0, div - 8):div + 8])
+            except Exception as e:
+                check = {"match": None, "error": str(e), "ledger_len": len(ledger)}
+            yield _sse("ledger_check", check)
+            yield _sse("done", {
+                "msg_idx": msg_idx, "stop_reason": stop_reason, "n_steps": n_steps,
+                "ledger_len": len(ledger), "case_hash": chash,
+            })
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"[agent_stream] error after snapshot {snapshot_id}: {e}\n{tb}", flush=True)
+            yield _sse("error", {"snapshot_id": snapshot_id, "error": str(e), "traceback": tb})
+        finally:
+            _pause_events.pop(stream_id, None)
+            for fut in _agent_waits.pop(stream_id, {}).values():
+                fut.cancel()
 
     return StreamingResponse(gen(), media_type="text/event-stream")
 
