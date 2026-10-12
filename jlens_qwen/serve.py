@@ -64,6 +64,10 @@ _app_mode = os.environ.get("JLENS_MODE", "active")
 if _app_mode not in ("active", "presentation"):
     print(f"unknown JLENS_MODE {_app_mode!r}; falling back to 'active'", flush=True)
     _app_mode = "active"
+# JLENS_NO_MODEL=1 skips the model and lens entirely, so the server starts on
+# a CPU-only node (login node, laptop) in seconds. The UI, saved sessions and
+# the Tools/case editor work; every endpoint that runs the model returns 503.
+_no_model = os.environ.get("JLENS_NO_MODEL", "").strip().lower() in ("1", "true", "yes")
 _repo_root = Path(__file__).resolve().parent.parent
 _sessions_dir = _repo_root / "data" / "sessions"
 # Agent cases (tools + mock results) authored in the UI, one JSON per case.
@@ -180,6 +184,10 @@ def _load_bands(lens_path: str | None) -> list[dict] | None:
 @app.on_event("startup")
 async def load():
     global _model, _lens, _bands
+    if _no_model:
+        print("JLENS_NO_MODEL: no model or lens loaded — UI, sessions and the "
+              "Tools/case editor only; generation endpoints return 503", flush=True)
+        return
     # Resolve the lens FIRST so a wrong/ambiguous choice fails in
     # milliseconds instead of after a 15 GB model load.
     try:
@@ -206,6 +214,8 @@ async def load():
 
 @app.get("/api/lens")
 async def lens_info():
+    if _model is None:
+        return {"lens_loaded": False, "n_layers": None, "d_model": None}
     if _lens is None:
         return {"lens_loaded": False, "n_layers": _model.n_layers, "d_model": _model.d_model}
     return {
@@ -222,8 +232,11 @@ async def lens_info():
 
 @app.get("/api/model")
 async def model_info():
+    if _model is None:
+        return {"model_id": _model_id, "n_layers": None, "d_model": None,
+                "mode": _app_mode, "model_loaded": False}
     return {"model_id": _model_id, "n_layers": _model.n_layers, "d_model": _model.d_model,
-            "mode": _app_mode}
+            "mode": _app_mode, "model_loaded": True}
 
 
 def _require_active_mode():

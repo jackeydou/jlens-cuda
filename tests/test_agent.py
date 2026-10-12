@@ -306,3 +306,26 @@ def test_agent_stream_manual_result(monkeypatch, tmp_path, qwen_tok):
         ("typed by hand", "manual")]
     assert dict(events)["done"]["stop_reason"] == "final"
     assert dict(events)["ledger_check"]["match"] is True
+
+
+# ----- JLENS_NO_MODEL: case editing on a CPU-only server -----
+
+def test_no_model_server_edits_cases(monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setattr(serve, "_no_model", True)
+    monkeypatch.setattr(serve, "_model", None)
+    monkeypatch.setattr(serve, "_lens", None)
+    monkeypatch.setattr(serve, "_cases_dir", tmp_path)
+    monkeypatch.setattr(serve, "load_model", lambda *a: pytest.fail("model loaded"))
+    with TestClient(serve.app) as client:
+        assert client.get("/api/model").json()["model_loaded"] is False
+        assert client.get("/api/lens").json()["lens_loaded"] is False
+        assert client.get("/").status_code == 200
+        r = client.put("/api/cases/weather", json={"tools": [WEATHER]})
+        assert r.status_code == 200, r.text
+        assert json.loads((tmp_path / "weather.json").read_text())["tools"][0]["name"] == "get_weather"
+        assert [c["id"] for c in client.get("/api/cases").json()["cases"]] == ["weather"]
+        r = client.post("/api/agent_stream", json={
+            "case_id": "weather", "messages": [{"role": "user", "content": "hi"}]})
+        assert r.status_code == 503

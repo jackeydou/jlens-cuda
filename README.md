@@ -70,6 +70,15 @@ stop instead of silently diverging, for strict reproduction. Every run reports
 the case hash and a ledger check: whether re-rendering the transcript
 reproduces exactly the tokens the model saw.
 
+Authoring cases needs no GPU: `JLENS_NO_MODEL=1` starts the server without the
+model or lens (seconds, on a login node or laptop). The UI, saved sessions and
+the Tools editor work; generation endpoints return 503. The GPU server reads
+`data/cases/` on every run, so cases edited this way are picked up as-is.
+
+```bash
+JLENS_NO_MODEL=1 uv run uvicorn jlens_qwen.serve:app --host 127.0.0.1 --port 8765
+```
+
 ## Tests
 
 `uv run pytest` runs on a laptop (no GPU, no weights): upstream's serve-logic
