@@ -1,0 +1,48 @@
+{
+  "id": "weather_demo",
+  "name": "Weather demo",
+  "description": "Two cities, parallel get_weather calls",
+  "system": "You are a travel assistant. Use tools when you need facts.",
+  "prompt": "Should I visit Paris or Rome tomorrow?",
+  "tools": [
+    {
+      "name": "get_weather",
+      "description": "Get tomorrow's weather for a city",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "city"
+        ]
+      },
+      "enabled": true,
+      "mock": {
+        "mode": "match",
+        "cases": [
+          {
+            "when": {
+              "city": "Paris"
+            },
+            "return": "{\"temp_c\": 18, \"cond\": \"sunny\"}"
+          },
+          {
+            "when": {
+              "city": "Rome"
+            },
+            "return": "{\"temp_c\": 24, \"cond\": \"rain\"}"
+          }
+        ],
+        "on_miss": "manual"
+      }
+    }
+  ],
+  "run": {
+    "max_steps": 8,
+    "max_tokens_per_step": 2048,
+    "enable_thinking": false
+  }
+}

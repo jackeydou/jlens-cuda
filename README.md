@@ -29,6 +29,7 @@ Files:
 jlens_qwen/model.py          TorchLensModel + StreamSession (hooks + HF hybrid cache)
 jlens_qwen/lens.py           JacobianLens (loads .npz and jlens/Neuronpedia .pt)
 jlens_qwen/interventions.py  steer / swap / ablate (J-lens vectors)
+jlens_qwen/agent.py          agent cases, mock tools, Qwen XML tool-call parsing
 jlens_qwen/serve.py          upstream FastAPI server, ported
 web/index.html               upstream UI, unchanged
 scripts/check_env.py         GPU + kernel check
@@ -52,6 +53,22 @@ sbatch slurm/fit_array.sbatch                                       # 8 shards
 uv run python scripts/merge_lens.py data/lens/shards/*.pt --out data/lens/qwen38_27b_n1000 --expect-n 1000
 JLENS_PATH=data/lens/qwen38_27b_n1000.npz uv run uvicorn jlens_qwen.serve:app --host 127.0.0.1 --port 8765
 ```
+
+## Agent mode (tool calling)
+
+The **Tools** button (bottom left) edits *cases*: a system prompt, the tool
+schemas the model sees, and what each tool returns. Cases are data stored on
+the server in `data/cases/<id>.json` (example: `data/cases/weather_demo.json`),
+so adding tools never needs server code. Tick *Use tools for new messages* and
+each message runs `/api/agent_stream`: the server parses Qwen's XML
+`<tool_call>`s, answers them from the case (`fixed`, `match` by arguments,
+`sequence`, `manual` = typed in the chat, or `http`), feeds the
+`<tool_response>` back into the same cached session, and keeps generating until
+a final answer. Tool results get their own J-lens prefill rows. A manual result
+can be saved as a fixture with one click, and `on_miss: "error"` makes a run
+stop instead of silently diverging, for strict reproduction. Every run reports
+the case hash and a ledger check: whether re-rendering the transcript
+reproduces exactly the tokens the model saw.
 
 ## Tests
 

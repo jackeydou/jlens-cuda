@@ -295,7 +295,7 @@
     transition: background 0.12s, transform 0.1s;
   }
   #clear-btn, #sessions-btn, #share-btn { padding: 0 18px; justify-content: center; font-size: 13px; }
-  /* Bottom-left bar: icon-only settings (active mode) + GitHub. */
+  /* Bottom-left bar: icon-only settings + agent tools (active mode only). */
   #corner-actions-left {
     position: fixed; left: 16px; bottom: var(--bottom-control-inset); z-index: 10;
     display: flex; gap: 0;
@@ -305,26 +305,6 @@
     justify-content: center;
   }
   #settings-btn svg { width: 19px; height: 19px; }
-  #github-btn {
-    height: 44px; padding: 0 18px;
-    display: flex; align-items: center; gap: 8px;
-    color: var(--text);
-    text-decoration: none;
-    font-size: 13px; font-weight: 500;
-    transition: background 0.12s, transform 0.1s;
-  }
-  .github-mark { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
-  .github-stars-wrap {
-    display: flex; align-items: center; gap: 4px;
-    color: var(--text-2);
-    font-variant-numeric: tabular-nums;
-  }
-  .github-stars-wrap .star-icon { width: 14px; height: 14px; fill: #eac54f; }
-  .github-stars-wrap[hidden] { display: none; }
-  /* Compact laptop layouts omit the owner prefix but retain the repository. */
-  @media (max-width: 1600px) {
-    .github-owner { display: none; }
-  }
   /* CSS cannot detect a display's physical diagonal, so use the available
      viewport: laptop-width or short windows show five rows; roomy desktop
      windows show all ten default readout rows. */
@@ -436,7 +416,7 @@
   }
 
   /* settings modal (centered, with a neutral dimming backdrop) */
-  :is(#settings-backdrop, #intervene-backdrop) {
+  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop) {
     position: fixed; inset: 0; z-index: 100;
     display: flex;
     align-items: center; justify-content: center;
@@ -452,7 +432,7 @@
                 -webkit-backdrop-filter 240ms ease,
                 visibility 0s linear 240ms;
   }
-  :is(#settings-backdrop, #intervene-backdrop).visible {
+  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop).visible {
     background-color: rgba(0,0,0,0.24);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -461,7 +441,7 @@
     pointer-events: auto;
     transition-delay: 0s;
   }
-  :is(#settings-popup, #intervene-popup) {
+  :is(#settings-popup, #intervene-popup, #tools-popup) {
     width: min(380px, 92vw);
     color-scheme: light;
     background: var(--settings-glass);
@@ -480,21 +460,21 @@
                 transform 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
     will-change: opacity, transform;
   }
-  :is(#settings-backdrop, #intervene-backdrop).visible :is(#settings-popup, #intervene-popup) { opacity: 1; transform: translateY(0) scale(1); }
-  :is(#settings-popup, #intervene-popup) h3 {
+  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop).visible :is(#settings-popup, #intervene-popup, #tools-popup) { opacity: 1; transform: translateY(0) scale(1); }
+  :is(#settings-popup, #intervene-popup, #tools-popup) h3 {
     margin: 0 0 14px; font-size: 14px; font-weight: 600; color: var(--settings-text);
   }
-  :is(#settings-popup, #intervene-popup) .field { margin-bottom: 14px; }
-  :is(#settings-popup, #intervene-popup) .field label {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field { margin-bottom: 14px; }
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field label {
     display: block; font-size: 12px; color: var(--settings-text-secondary); margin-bottom: 4px;
   }
-  :is(#settings-popup, #intervene-popup) .field label .value {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field label .value {
     float: right;
     color: var(--settings-accent);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="number"] {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="number"] {
     width: 100%; font: inherit; font-size: 13px; padding: 6px 10px;
     border: 1px solid var(--glass-recessed-border); border-radius: 12px;
     corner-shape: squircle;
@@ -506,12 +486,12 @@
     -webkit-appearance: none;
     caret-color: var(--settings-accent);
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="number"]:focus {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="number"]:focus {
     border-color: var(--settings-accent);
     outline: 3px solid rgba(255,159,10,0.24);
     outline-offset: 1px;
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="range"] {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"] {
     width: 100%;
     --range-progress: 0%;
     height: 18px;
@@ -521,14 +501,14 @@
     accent-color: var(--settings-accent);
     cursor: pointer;
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="range"]::-webkit-slider-runnable-track {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 999px;
     border: 0;
     background: linear-gradient(to right, var(--settings-accent) 0 var(--range-progress), var(--glass-track) var(--range-progress) 100%);
     box-shadow: none;
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="range"]::-webkit-slider-thumb {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 20px; height: 20px;
@@ -538,30 +518,30 @@
     background: var(--glass-accent);
     box-shadow: 0 4px 10px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.30);
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="range"]::-moz-range-track {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-moz-range-track {
     height: 6px;
     border-radius: 999px;
     border: 0;
     background: var(--glass-track);
     box-shadow: none;
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="range"]::-moz-range-progress {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-moz-range-progress {
     height: 6px;
     border-radius: 999px;
     background: var(--settings-accent);
   }
-  :is(#settings-popup, #intervene-popup) .field input[type="range"]::-moz-range-thumb {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-moz-range-thumb {
     width: 20px; height: 20px;
     border: 1px solid rgba(255,255,255,0.34);
     border-radius: 50%;
     background: var(--glass-accent);
     box-shadow: 0 4px 10px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.30);
   }
-  :is(#settings-popup, #intervene-popup) .field .hint { font-size: 11px; color: var(--settings-text-tertiary); margin-top: 3px; }
-  :is(#settings-popup, #intervene-popup) .actions {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .field .hint { font-size: 11px; color: var(--settings-text-tertiary); margin-top: 3px; }
+  :is(#settings-popup, #intervene-popup, #tools-popup) .actions {
     display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;
   }
-  :is(#settings-popup, #intervene-popup) .actions button {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button {
     min-width: 76px; padding: 7px 18px; border-radius: 12px;
     corner-shape: var(--corner-continuous);
     font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--glass-recessed-border);
@@ -573,22 +553,105 @@
     -webkit-appearance: none;
     transition: background 0.12s, transform 0.1s;
   }
-  :is(#settings-popup, #intervene-popup) .actions button.ok {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button.ok {
     background: var(--settings-accent); color: white;
     border-color: transparent;
     box-shadow: none;
   }
-  :is(#settings-popup, #intervene-popup) .actions button.ok:hover { background: var(--settings-accent-hover); }
-  :is(#settings-popup, #intervene-popup) .actions button.cancel:hover { background: var(--settings-control-fill-hover); }
-  :is(#settings-popup, #intervene-popup) .actions button:focus-visible {
+  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button.ok:hover { background: var(--settings-accent-hover); }
+  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button.cancel:hover { background: var(--settings-control-fill-hover); }
+  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button:focus-visible {
     outline: 3px solid rgba(255,159,10,0.34);
     outline-offset: 2px;
   }
-  :is(#settings-popup, #intervene-popup) .actions button:active { transform: scale(0.97); }
+  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button:active { transform: scale(0.97); }
   @media (prefers-reduced-motion: reduce) {
-    :is(#settings-backdrop, #intervene-backdrop),
-    :is(#settings-popup, #intervene-popup) { transition: none; }
+    :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop),
+    :is(#settings-popup, #intervene-popup, #tools-popup) { transition: none; }
   }
+
+  /* ----- Agent tools: case editor modal + tool-call rendering ----- */
+  #tools-btn { padding: 0 16px; font-size: 13px; display: flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+  #tools-btn .agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
+  #tools-btn.active .agent-dot { background: var(--settings-accent); }
+  #tools-popup {
+    width: min(880px, 94vw); max-height: 88vh;
+    display: flex; flex-direction: column;
+  }
+  #tools-popup .tools-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  #tools-popup .tools-head h3 { margin: 0; flex: 1; }
+  #tools-popup .tools-enable { font-size: 12px; color: var(--settings-text-secondary); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  #tools-popup .tools-case-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  #tools-popup .tools-case-row select { flex: 1; }
+  #tools-body { overflow-y: auto; min-height: 0; flex: 1; padding-right: 4px; }
+  #tools-popup :is(input[type="text"], input[type="url"], textarea, select),
+  #tools-popup .field input[type="number"] {
+    width: 100%; font: inherit; font-size: 13px; padding: 6px 10px;
+    border: 1px solid var(--glass-recessed-border); border-radius: 10px;
+    background: var(--settings-control-fill); color: var(--settings-text); outline: none;
+    box-sizing: border-box;
+  }
+  #tools-popup :is(input, textarea, select):focus { border-color: var(--settings-accent); }
+  #tools-popup textarea { resize: vertical; min-height: 34px; }
+  #tools-popup .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  #tools-popup .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #tools-popup .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
+  #tools-popup .section-title { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; font-size: 12px; font-weight: 600; color: var(--settings-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+  #tools-popup .section-title span { flex: 1; }
+  #tools-popup .mini-btn {
+    font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--glass-recessed-border); background: var(--settings-control-fill); color: var(--settings-text);
+    white-space: nowrap;
+  }
+  #tools-popup .mini-btn:hover { background: var(--settings-control-fill-hover); }
+  #tools-popup .mini-btn.danger { color: #c4314b; }
+  #tools-popup .tool-card {
+    border: 1px solid var(--glass-recessed-border); border-radius: 14px; padding: 12px; margin-bottom: 10px;
+    background: rgba(255,255,255,0.18);
+  }
+  #tools-popup .tool-card.disabled { opacity: 0.55; }
+  #tools-popup .tool-card .field { margin-bottom: 10px; }
+  #tools-popup .row { display: flex; gap: 8px; align-items: center; }
+  #tools-popup .row > .grow { flex: 1; }
+  #tools-popup .mock-case { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; margin-bottom: 6px; align-items: start; }
+  #tools-popup .mock-seq { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; margin-bottom: 6px; align-items: start; }
+  #tools-popup .mock-seq .idx { font-size: 11px; color: var(--settings-text-tertiary); padding-top: 8px; }
+  #tools-popup .hint { font-size: 11px; color: var(--settings-text-tertiary); margin-top: 3px; }
+  #tools-status { font-size: 12px; min-height: 16px; margin-top: 10px; color: var(--settings-text-secondary); white-space: pre-wrap; }
+  #tools-status.error { color: #c4314b; }
+  #tools-popup .actions { margin-top: 10px; }
+  #tools-popup .invalid { border-color: #c4314b !important; }
+
+  .msg.tool { align-self: flex-start; align-items: flex-start; }
+  .msg.tool .bubble { background: rgba(255,159,10,0.10); color: var(--text); font-size: 12px; }
+  .msg .role .src { margin-left: 6px; padding: 0 6px; border-radius: 6px; background: var(--border-2); font-size: 10px; }
+  .msg .bubble .tok.seg-tool_call { color: #9a5800; background: rgba(255,159,10,0.08); }
+  .msg .bubble .tok.seg-reasoning { color: var(--text-3); font-style: italic; }
+  .tool-calls { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+  .tool-call-card {
+    border: 1px solid var(--border-2); border-radius: 12px; padding: 8px 10px;
+    font-size: 12px; background: var(--asst-bubble);
+  }
+  .tool-call-card .head { display: flex; gap: 8px; align-items: center; }
+  .tool-call-card .fn { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 600; flex: 1; word-break: break-all; }
+  .tool-call-card .status { font-size: 10px; padding: 1px 7px; border-radius: 8px; background: var(--border-2); color: var(--text-2); }
+  .tool-call-card .status.waiting { background: var(--highlight-orange-soft); color: var(--highlight-orange); }
+  .tool-call-card .status.error, .tool-call-card .status.miss { background: rgba(196,49,75,0.12); color: #c4314b; }
+  .tool-call-card .args { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; white-space: pre-wrap; color: var(--text-2); margin-top: 4px; word-break: break-word; }
+  .tool-call-card .note { margin-top: 4px; color: #c4314b; }
+  .tool-call-card textarea {
+    width: 100%; box-sizing: border-box; margin-top: 6px; min-height: 60px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px;
+    border: 1px solid var(--border-2); border-radius: 8px; padding: 6px 8px; background: var(--bg, white); color: var(--text);
+  }
+  .tool-call-card .btns { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
+  .tool-call-card button, .msg .fixture-btn {
+    font: inherit; font-size: 11px; padding: 3px 10px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border-2); background: transparent; color: var(--text);
+  }
+  .tool-call-card button.primary { background: var(--highlight-orange); border-color: transparent; color: white; }
+  .agent-notice { align-self: stretch; font-size: 11px; color: var(--text-3); text-align: center; }
+  .agent-notice.warn { color: #c4314b; }
+  html.presentation .tool-call-card :is(textarea, .btns), html.presentation .fixture-btn { display: none; }
 
   /* Intervention editor specifics: segmented controls, token-preview
      chips, mono text inputs. Everything else reuses the settings modal
@@ -2018,9 +2081,8 @@
     pointer-events: none;
     z-index: 1;
   }
-  /* Settings is the first left-bar item, so its hidden presentation state
-     also suppresses the divider carried by the remaining GitHub button. */
-  html.presentation #corner-actions-left > #github-btn::after { display: none; }
+  /* Both left-bar items are editing affordances; presentation hides the bar. */
+  html.presentation #corner-actions-left { display: none !important; }
 
   /* ----- Presentation entry: wide centered session picker ----- */
   /* First screen of presentation mode. The corner Saved Sessions button
@@ -2036,20 +2098,6 @@
   html.picker-open body::after { display: none; }
   html.picker-open #corner-actions,
   html.picker-open #corner-actions-left { display: none !important; }
-  /* GitHub repo line, bottom center of the first screen: icon · name ·
-     stars. Out of the flex flow, so the card's morph never moves it; it
-     fades away as the picker closes. */
-  #picker-github {
-    position: absolute; bottom: 28px; left: 50%;
-    transform: translateX(-50%);
-    display: flex; align-items: center; gap: 8px;
-    color: var(--text-2); text-decoration: none;
-    font-size: 13px; font-weight: 500;
-    transition: color 0.12s, opacity 240ms ease;
-  }
-  #picker-github:hover { color: var(--text); }
-  #picker-github .github-mark { width: 16px; height: 16px; }
-  #session-picker.closing #picker-github { opacity: 0; }
   /* The card is a WIDER twin of #sessions-menu: identical head, item
      markup, typography, and paddings — so the morph to the corner reads
      as the same element travelling, its rows re-ellipsizing as the box
@@ -2195,14 +2243,7 @@
   <button id="settings-btn" class="corner-action glass-hoverable" title="Generation settings" aria-label="Settings">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
-  <a id="github-btn" class="corner-action glass-hoverable" href="https://github.com/WeZZard/jlens-qwen36" target="_blank" rel="noopener" title="View on GitHub">
-    <svg class="github-mark" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>
-    <span class="github-name"><span class="github-owner">WeZZard/</span>jlens-qwen36</span>
-    <span class="github-stars-wrap" hidden>
-      <svg class="star-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
-      <span class="github-stars"></span>
-    </span>
-  </a>
+  <button id="tools-btn" class="corner-action glass-hoverable" title="Agent tools: tool schemas and mock results"><span class="agent-dot"></span><span id="tools-btn-label">Tools</span></button>
   </div>
   <div id="corner-actions" class="corner-button-bar">
     <button id="share-btn" class="corner-action glass-hoverable" title="Copy a link to this conversation" hidden><span>Copy Link</span></button>
@@ -2252,14 +2293,6 @@
       <div class="sessions-head"><span>Saved Sessions</span></div>
       <div id="session-picker-list"></div>
     </div>
-    <a id="picker-github" href="https://github.com/WeZZard/jlens-qwen36" target="_blank" rel="noopener" title="View on GitHub">
-      <svg class="github-mark" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>
-      <span class="github-name"><span class="github-owner">WeZZard/</span>jlens-qwen36</span>
-      <span class="github-stars-wrap" hidden>
-        <svg class="star-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
-        <span class="github-stars"></span>
-      </span>
-    </a>
   </div>
 
   <!-- ===== Settings modal (centered, dimmed backdrop) ===== -->
@@ -2284,6 +2317,29 @@
       <div class="actions">
         <button class="cancel" id="settings-cancel">Cancel</button>
         <button class="ok" id="settings-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Agent tools modal: case = tool schemas + mock results ===== -->
+  <div id="tools-backdrop" aria-hidden="true" inert>
+    <div id="tools-popup" role="dialog" aria-modal="true" aria-labelledby="tools-title">
+      <div class="tools-head">
+        <h3 id="tools-title">Agent tools</h3>
+        <label class="tools-enable" title="New messages run as a multi-step tool-calling agent with the selected case"><input id="agent-enabled" type="checkbox"> Use tools for new messages</label>
+      </div>
+      <div class="tools-case-row">
+        <select id="case-select" aria-label="Case"></select>
+        <button class="mini-btn" id="case-new" type="button">New</button>
+        <button class="mini-btn" id="case-dup" type="button">Duplicate</button>
+        <button class="mini-btn danger" id="case-del" type="button">Delete</button>
+        <button class="mini-btn" id="case-json" type="button">Edit JSON</button>
+      </div>
+      <div id="tools-body"></div>
+      <div id="tools-status" aria-live="polite"></div>
+      <div class="actions">
+        <button class="cancel" id="tools-close" type="button">Close</button>
+        <button class="ok" id="tools-save" type="button">Save to server</button>
       </div>
     </div>
   </div>
@@ -2426,6 +2482,12 @@ let state = {
   sourceSessionId: null,
   // Generation settings (configurable via the settings popup).
   settings: { maxTokens: 262144, temp: 0.0, topN: 10 },
+  // Agent mode (Tools modal): which server-side case new messages run
+  // with. Persisted separately from the conversation (AGENT_KEY).
+  agent: { enabled: false, caseId: null, caseHash: null, toolNames: [] },
+  // The frozen case + hash the last agent stream actually ran with (from
+  // its stream_start frame), plus its ledger check. Saved with sessions.
+  agentRun: null,
 };
 
 const STORAGE_KEY = 'jlens-conversation-v1';
@@ -2491,17 +2553,51 @@ function persistRecipe(recipe) {
   };
 }
 
+function persistMessage(m) {
+  const out = {
+    role: m.role,
+    content: m.content,
+    tokens: m.tokens.map(t => {
+      const pt = { id: t.id ?? null, text: t.text, globalPos: t.globalPos };
+      if (t.segment) pt.segment = t.segment;
+      return pt;
+    }),
+    prefillSnapshotId: m.prefillSnapshotId,
+  };
+  // Agent-mode extras: tool messages carry the tool name + call id,
+  // assistant turns carry their parsed tool calls and results.
+  if (m.name) out.name = m.name;
+  if (m.toolCallId) out.toolCallId = m.toolCallId;
+  if (m.toolCalls) out.toolCalls = m.toolCalls.map(({ draft, ...c }) => ({ ...c }));
+  if (m.stopReason) out.stopReason = m.stopReason;
+  return out;
+}
+
+// Inverse of persistMessage (tokens get snapshot ids from the replay).
+function reviveMessage(m) {
+  const out = {
+    role: m.role,
+    content: m.content,
+    tokens: (m.tokens || []).map(t => ({
+      id: Number.isInteger(t.id) ? t.id : null,
+      text: t.text, globalPos: t.globalPos, snapshotId: -1,
+      ...(t.segment ? { segment: t.segment } : {}),
+    })),
+    prefillSnapshotId: m.prefillSnapshotId || null,
+  };
+  if (m.name) out.name = m.name;
+  if (m.toolCallId) out.toolCallId = m.toolCallId;
+  if (Array.isArray(m.toolCalls)) out.toolCalls = m.toolCalls.map(c => ({ ...c }));
+  if (m.stopReason) out.stopReason = m.stopReason;
+  return out;
+}
+
 function serializableConversation({ trimForLocalStorage = false } = {}) {
   const persistable = {
     schema: 1,
     preview: firstUserMessagePreview(),
     settings: { ...state.settings },
-    messages: state.messages.map(m => ({
-      role: m.role,
-      content: m.content,
-      tokens: m.tokens.map(t => ({ id: t.id ?? null, text: t.text, globalPos: t.globalPos })),
-      prefillSnapshotId: m.prefillSnapshotId,
-    })),
+    messages: state.messages.map(persistMessage),
     // The other (inactive) run's snapshots ride along tagged
     // variant:'other' — ALL of them, because prompt-position interventions
     // change prefill readouts too, so nothing is shared across variants.
@@ -2524,14 +2620,10 @@ function serializableConversation({ trimForLocalStorage = false } = {}) {
       baselineHadInterventions: !!state.compare.baselineHadInterventions,
       configurationLabel: state.compare.configurationLabel || '',
       otherApplied: (state.compare.other.appliedInterventions || []).map(persistSpec),
-      otherMessages: state.compare.other.messages.map(m => ({
-        role: m.role,
-        content: m.content,
-        tokens: m.tokens.map(t => ({ id: t.id ?? null, text: t.text, globalPos: t.globalPos })),
-        prefillSnapshotId: m.prefillSnapshotId,
-      })),
+      otherMessages: state.compare.other.messages.map(persistMessage),
     } : null,
     sourceSessionId: state.sourceSessionId,
+    agentRun: state.agentRun,
   };
   if (trimForLocalStorage) {
     let json = JSON.stringify(persistable);
@@ -2637,15 +2729,8 @@ function newRunState() {
 
 function restoreConversation(saved) {
   if (!saved || !saved.messages || saved.messages.length === 0) return false;
-  state.messages = saved.messages.map(m => ({
-    role: m.role,
-    content: m.content,
-    tokens: (m.tokens || []).map(t => ({
-      id: Number.isInteger(t.id) ? t.id : null,
-      text: t.text, globalPos: t.globalPos, snapshotId: -1,
-    })),
-    prefillSnapshotId: m.prefillSnapshotId || null,
-  }));
+  state.messages = saved.messages.map(reviveMessage);
+  state.agentRun = saved.agentRun || null;
   const allSnaps = saved.snapshots || [];
   // Variant-tagged snapshots belong to the compare's OTHER run; they are
   // replayed into compare.other below, never into the live run.
@@ -2688,15 +2773,7 @@ function restoreConversation(saved) {
   if (saved.compare && Array.isArray(saved.compare.otherMessages)) {
     try {
       const other = newRunState();
-      other.messages = saved.compare.otherMessages.map(m => ({
-        role: m.role,
-        content: m.content,
-        tokens: (m.tokens || []).map(t => ({
-          id: Number.isInteger(t.id) ? t.id : null,
-          text: t.text, globalPos: t.globalPos, snapshotId: -1,
-        })),
-        prefillSnapshotId: m.prefillSnapshotId || null,
-      }));
+      other.messages = saved.compare.otherMessages.map(reviveMessage);
       other.appliedInterventions = (saved.compare.otherApplied || [])
         .filter(validSpecShape).map(reviveSpec);
       for (const snap of allSnaps) {
@@ -2741,16 +2818,21 @@ function _applyRestoredSnapshot(snap, run = state) {
   m.role = snap.role;
   if (snap.token_idx === -1) {
     m.prefillSnapshotId = snap.snapshot_id;
-    if (snap.role === 'user' || (snap.role === 'assistant' && snap.n_tokens > 0)) {
+    if (snap.role === 'user' || snap.role === 'tool' ||
+        (snap.role === 'assistant' && snap.n_tokens > 0)) {
+      if (snap.name) m.name = snap.name;
+      if (snap.tool_call_id) m.toolCallId = snap.tool_call_id;
       const strs = snap.token_strs || [];
       if (strs.length) {
         const persistedByPos = new Map(m.tokens.map((t) => [t.globalPos, t]));
         m.tokens = strs.map((str, i) => {
           const globalPos = snap.prefill_pos + i;
           const persisted = persistedByPos.get(globalPos);
+          const segment = snap.segments?.[i];
           return {
             id: persisted?.text === str && Number.isInteger(persisted.id) ? persisted.id : null,
             text: str, globalPos, snapshotId: snap.snapshot_id,
+            ...(segment && segment !== 'content' ? { segment } : {}),
           };
         });
         m.content = strs.join('');
@@ -2787,6 +2869,7 @@ function _applyRestoredSnapshot(snap, run = state) {
       }
       m2.tokens[snap.token_idx] = {
         id: snap.token_id, text: tokStr, globalPos, snapshotId: snap.snapshot_id,
+        ...(snap.segment ? { segment: snap.segment } : {}),
       };
       m2.content = m2.tokens.map(t => t.text).join('');
     }
@@ -2877,6 +2960,7 @@ function clearState() {
   state.selectedInterventionRecipeId = null;
   state.appliedInterventions = [];
   state.compare = null;
+  state.agentRun = null;
   state.sourceSessionId = null;
   state.selectedSnapshotId = null;
   state.selectedCell = null;
@@ -3156,23 +3240,6 @@ async function _streamRemainingChunks(sessionId, totalChunks, gen) {
   flushSaveState();
 }
 
-// ----- GitHub repo capsule: live star count -----
-// Anonymous GitHub API call; on failure (offline, rate limit, private
-// repo) the star section simply stays hidden — icon + name still show.
-const GITHUB_REPO = 'WeZZard/jlens-qwen36';
-async function loadGithubStars() {
-  try {
-    const resp = await fetch('https://api.github.com/repos/' + GITHUB_REPO);
-    if (!resp.ok) return;
-    const data = await resp.json();
-    const n = data.stargazers_count;
-    if (!Number.isFinite(n)) return;
-    const text = n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n);
-    document.querySelectorAll('.github-stars').forEach(el => { el.textContent = text; });
-    document.querySelectorAll('.github-stars-wrap').forEach(el => { el.hidden = false; });
-  } catch (e) {}
-}
-
 // ----- Lens + model info -----
 let _infoReadyPromise = null;
 function ensureInfoReady() {
@@ -3437,7 +3504,9 @@ function renderChat({ scrollToBottom = false, scrollToTop = false } = {}) {
     wrap.className = 'msg ' + m.role;
     const role = document.createElement('div');
     role.className = 'role';
-    role.textContent = m.role === 'user' ? 'You' : 'Assistant';
+    role.textContent = m.role === 'user' ? 'You'
+      : m.role === 'tool' ? `Tool · ${m.name || '?'}` : 'Assistant';
+    if (m.role === 'tool') appendToolSourceBadge(role, mi);
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
     if (m.tokens.length === 0) {
@@ -3448,7 +3517,7 @@ function renderChat({ scrollToBottom = false, scrollToTop = false } = {}) {
     } else {
       m.tokens.forEach((t, ti) => {
         const span = document.createElement('span');
-        span.className = 'tok';
+        span.className = t.segment && t.segment !== 'content' ? `tok seg-${t.segment}` : 'tok';
         span.textContent = t.text;
         span.title = `msg ${mi} tok ${ti} pos ${t.globalPos}`;
         span.dataset.msgIdx = mi;
@@ -3473,8 +3542,16 @@ function renderChat({ scrollToBottom = false, scrollToTop = false } = {}) {
     }
     wrap.appendChild(role);
     wrap.appendChild(bubble);
+    if (m.toolCalls && m.toolCalls.length) wrap.appendChild(renderToolCallCards(mi));
     log.appendChild(wrap);
+    if (m.stopReason && m.stopReason !== 'final') log.appendChild(agentNotice(m.stopReason));
   });
+  if (state.agentRun?.ledgerCheck?.match === false) {
+    const c = state.agentRun.ledgerCheck;
+    log.appendChild(agentNotice(
+      `ledger drift at position ${c.first_divergence}: re-rendering this transcript ` +
+      `would not reproduce the exact tokens the model saw`, true));
+  }
   log.scrollTop = scrollToTop ? 0 : (scrollToBottom ? log.scrollHeight : previousScrollTop);
 }
 
@@ -4019,7 +4096,7 @@ function gridRowHtml(pos, selectedTokenKey, activePos, rowCtx = null) {
   const tokStr = state.gridTokenStrs[pos] || '·';
   const meta = state.gridTokenMsgs[pos];
   const isGen = !!(meta && meta.isGen);
-  const isUser = !!(meta && state.messages[meta.msgIdx]?.role === 'user');
+  const isUser = !!(meta && ['user', 'tool'].includes(state.messages[meta.msgIdx]?.role));
   const rowData = state.gridRows[pos];
   const selRow = !!(state.selectedCell && state.selectedCell.pos === pos);
   const searchRow = !!(rowCtx && rowCtx.search && rowCtx.search.positions.has(pos));
@@ -6024,7 +6101,8 @@ function selectTokenInChat(msgIdx, tokenIdx) {
   if (hadCellSelection) dismissDetailCard();
   updateAutoFollowUI();
   renderAll();
-  openWishForReplyToken(msgIdx, tokenIdx);
+  // The backward search replays plain chat turns; agent turns are skipped.
+  if (!isAgentConversation(state.messages)) openWishForReplyToken(msgIdx, tokenIdx);
 }
 function selectTokenHeader(pos) {
   const ref = tokenRefForPosition(pos);
@@ -6123,6 +6201,11 @@ function applyUiState() {
   settingsModal.inert = !settingsOpen;
   settingsModal.setAttribute('aria-hidden', String(!settingsOpen));
   settingsModal.classList.toggle('visible', settingsOpen);
+  const toolsModal = $('tools-backdrop');
+  const toolsOpen = ui.popover === 'tools';
+  toolsModal.inert = !toolsOpen;
+  toolsModal.setAttribute('aria-hidden', String(!toolsOpen));
+  toolsModal.classList.toggle('visible', toolsOpen);
   $('sessions-menu').classList.toggle('visible',
     ui.popover === 'sessionsMenu');
   updateShareButton();
@@ -6206,7 +6289,9 @@ function ingestSnapshot(snap) {
 
   if (snap.token_idx === -1) {
     m.prefillSnapshotId = snap.snapshot_id;
-    if (snap.role === 'user') {
+    if (snap.name) m.name = snap.name;
+    if (snap.tool_call_id) m.toolCallId = snap.tool_call_id;
+    if (snap.role === 'user' || snap.role === 'tool') {
       // Populate user tokens so the bubble renders the message, and
       // register each user-token index → prefill snapshot so per-token
       // blocks in the timeline can drive selection.
@@ -6216,9 +6301,11 @@ function ingestSnapshot(snap) {
       m.tokens = strs.map((str, i) => {
         const globalPos = snap.prefill_pos + i;
         const existing = existingByPos.get(globalPos);
+        const segment = snap.segments?.[i];
         return {
           id: existing?.text === str && Number.isInteger(existing.id) ? existing.id : null,
           text: str, globalPos, snapshotId: snap.snapshot_id,
+          ...(segment && segment !== 'content' ? { segment } : {}),
         };
       });
       strs.forEach((str, i) => {
@@ -6236,9 +6323,11 @@ function ingestSnapshot(snap) {
       m.tokens = strs.map((str, i) => {
         const globalPos = snap.prefill_pos + i;
         const existing = existingByPos.get(globalPos);
+        const segment = snap.segments?.[i];
         return {
           id: existing?.text === str && Number.isInteger(existing.id) ? existing.id : null,
           text: str, globalPos, snapshotId: snap.snapshot_id,
+          ...(segment && segment !== 'content' ? { segment } : {}),
         };
       });
       strs.forEach((str, i) => {
@@ -6260,6 +6349,7 @@ function ingestSnapshot(snap) {
     }
     m.tokens[snap.token_idx] = {
       id: snap.token_id, text: tokStr, globalPos, snapshotId: snap.snapshot_id,
+      ...(snap.segment ? { segment: snap.segment } : {}),
     };
     m.content = m.tokens.map(t => t.text).join('');
     if (snap.grid && snap.grid.positions && snap.grid.positions.length) {
@@ -6337,11 +6427,12 @@ async function sendMessage() {
   renderAll();
 
   const payload = {
-    messages: state.messages.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+    messages: state.messages.slice(0, -1).map(payloadMessage),
     max_tokens: state.settings.maxTokens,
     temp: state.settings.temp,
     top_n: state.settings.topN,
   };
+  if (agentActive()) payload.case_id = state.agent.caseId;
   if (state.appliedInterventions.length) {
     payload.interventions = state.appliedInterventions.map(specToPayload);
   }
@@ -6358,7 +6449,10 @@ async function streamChat(payload) {
   const controller = new AbortController();
   state.streamAbortController = controller;
   try {
-    const resp = await fetch(API + '/api/chat_stream', {
+    // Agent payloads (case_id) run the multi-step tool loop; the snapshot
+    // wire format is shared, so everything below is endpoint-agnostic.
+    const endpoint = payload.case_id ? '/api/agent_stream' : '/api/chat_stream';
+    const resp = await fetch(API + endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal: controller.signal,
@@ -6366,6 +6460,7 @@ async function streamChat(payload) {
     if (!resp.ok) {
       const txt = await resp.text();
       console.error('stream error:', txt.slice(0, 200));
+      if (payload.case_id) showAgentRequestError(txt);
       ok = false;
       return false;
     }
@@ -6428,10 +6523,20 @@ function handleSSEFrame(frame) {
   try { obj = JSON.parse(data); } catch (e) { return; }
   if (event === 'stream_start') {
     state.streamId = obj.stream_id;
+    if (obj.mode === 'agent') {
+      state.agentRun = { case: obj.case, caseHash: obj.case_hash, ledgerCheck: null, stopReason: null };
+    }
+  } else if (handleAgentEvent(event, obj)) {
+    // step_start / step_done / tool_* / ledger_check (agent streams only)
   } else if (event === 'snapshot') {
     ingestSnapshot(obj);
   } else if (event === 'done') {
     if (state.compare) state.compare.completed = true;
+    if (obj.stop_reason && state.agentRun) {
+      state.agentRun.stopReason = obj.stop_reason;
+      const last = state.messages[obj.msg_idx];
+      if (last) last.stopReason = obj.stop_reason;
+    }
     console.log('done ·', obj.n_tokens, 'tokens');
   } else if (event === 'error') {
     if (state.compare) state.compare.completed = false;
@@ -6532,13 +6637,19 @@ async function rerunWithSpecs(specs, {
   if (!last || last.role !== 'assistant' || !last.tokens?.length) return;
   flushSaveState();
   specs = specs.map(persistSpec);
-  const msgIdx = baseline.messages.length - 1;
+  // An agent turn spans several messages (assistant → tool → … → final):
+  // re-run the whole turn from its user message with the same case.
+  const agentCaseId = isAgentConversation(baseline.messages) ? state.agentRun?.case?.id : null;
+  const msgIdx = agentCaseId
+    ? baseline.messages.map(m => m.role).lastIndexOf('user') + 1
+    : baseline.messages.length - 1;
 
   // Fresh run: context-message shells + an empty assistant target. The
   // server re-emits prefill snapshots for every message on each stream,
   // so the grid (including intervened prompt readouts) rebuilds itself.
-  state.messages = baseline.messages.slice(0, -1).map(m => ({
+  state.messages = baseline.messages.slice(0, msgIdx).map(m => ({
     role: m.role, content: m.content, tokens: [], prefillSnapshotId: null,
+    ...(m.name ? { name: m.name } : {}),
   }));
   state.messages.push({ role: 'assistant', content: '', tokens: [], prefillSnapshotId: null });
   state.snapshots = [];
@@ -6567,7 +6678,8 @@ async function rerunWithSpecs(specs, {
   renderAll();
 
   const payload = {
-    messages: state.messages.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+    messages: state.messages.slice(0, -1).map(payloadMessage),
+    ...(agentCaseId ? { case_id: agentCaseId } : {}),
     max_tokens: state.settings.maxTokens,
     // A verified backward-search recipe was judged by a greedy replay. Its
     // adoption path passes tempOverride=0 so the visible re-run reproduces
@@ -8270,6 +8382,7 @@ document.addEventListener('keydown', (e) => {
   // Escape pops the ui tiers: the floating popover first, then whatever
   // mode owns the screen.
   if (ui.popover === 'settings') { cancelSettings(); return; }
+  if (ui.popover === 'tools') { closeToolsModal(); return; }
   if (ui.popover === 'sessionsMenu') { closeSessionsMenu(); return; }
   if (ui.mode.kind === 'editor' || ui.mode.kind === 'recipePreview') {
     cancelInterventionEditor();
@@ -8286,9 +8399,775 @@ function escapeAttr(s) {
   return escapeHtml(s).replace(/"/g, '&quot;');
 }
 
+// ----- Agent mode: server-side cases (tool schemas + mock results) -----
+// A case is pure data stored on the server (data/cases/<id>.json): the
+// system prompt, the tools the model sees, and what each tool returns.
+// Editing it here never needs a server change. New messages run through
+// /api/agent_stream with the active case: the server parses the model's
+// <tool_call> XML, answers from the mocks (or asks here), feeds the
+// <tool_response> back and keeps generating until a final answer.
+const AGENT_KEY = 'jlens-agent-v1';
+const MOCK_MODE_LABELS = {
+  fixed: 'Always the same result',
+  match: 'Depends on arguments',
+  sequence: 'In order, call by call',
+  manual: 'I type it during the run',
+  http: 'POST to a URL',
+};
+const ON_MISS_LABELS = {
+  manual: 'ask me',
+  default: 'use a default result',
+  error: 'stop the run (strict)',
+};
+const STOP_REASON_TEXT = {
+  max_steps: 'Stopped: reached the case\'s max steps.',
+  max_tokens: 'Stopped: hit the per-step token limit.',
+  repetition: 'Stopped: repetition breaker (intervened run).',
+  fixture_miss: 'Stopped: a tool call matched no fixture (on_miss = stop).',
+};
+
+function agentActive() {
+  return !!(state.agent.enabled && state.agent.caseId);
+}
+
+function isAgentConversation(messages) {
+  return !!state.agentRun || messages.some(m => m.role === 'tool' || (m.toolCalls || []).length);
+}
+
+function payloadMessage(m) {
+  return { role: m.role, content: m.content, ...(m.role === 'tool' && m.name ? { name: m.name } : {}) };
+}
+
+function saveAgentConfig() {
+  try {
+    localStorage.setItem(AGENT_KEY, JSON.stringify({
+      enabled: state.agent.enabled, caseId: state.agent.caseId,
+    }));
+  } catch (e) {}
+}
+
+function setActiveCase(caseObj, hash) {
+  state.agent.caseId = caseObj ? caseObj.id : null;
+  state.agent.caseHash = caseObj ? hash : null;
+  state.agent.toolNames = caseObj ? caseObj.tools.filter(t => t.enabled).map(t => t.name) : [];
+  if (!caseObj) state.agent.enabled = false;
+  saveAgentConfig();
+  updateToolsButton();
+}
+
+function updateToolsButton() {
+  const on = agentActive();
+  $('tools-btn').classList.toggle('active', on);
+  $('tools-btn-label').textContent = on ? `Tools · ${state.agent.caseId}` : 'Tools';
+  $('tools-btn').title = on
+    ? `Agent mode: case ${state.agent.caseId} (${state.agent.toolNames.join(', ') || 'no tools'})`
+    : 'Agent tools: tool schemas and mock results';
+  $('chat-editor').dataset.placeholder = on
+    ? `Message the agent (case ${state.agent.caseId})…` : 'Message the model…';
+}
+
+async function fetchCase(caseId) {
+  const resp = await fetch(API + '/api/cases/' + encodeURIComponent(caseId));
+  if (!resp.ok) throw new Error(await errorDetail(resp));
+  return resp.json();
+}
+
+async function errorDetail(resp) {
+  const txt = await resp.text();
+  try { return JSON.parse(txt).detail || txt; } catch (e) { return txt || `${resp.status}`; }
+}
+
+async function loadAgentConfig() {
+  if (isPresentation()) return;
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(AGENT_KEY) || 'null'); } catch (e) {}
+  updateToolsButton();
+  if (!saved || !saved.caseId) return;
+  try {
+    const { case: c, hash } = await fetchCase(saved.caseId);
+    state.agent.enabled = !!saved.enabled;
+    setActiveCase(c, hash);
+  } catch (e) {
+    setActiveCase(null);
+  }
+}
+
+function showAgentRequestError(txt) {
+  let detail = txt;
+  try { detail = JSON.parse(txt).detail || txt; } catch (e) {}
+  alert('Agent run failed to start:\n' + detail);
+}
+
+// ----- Agent stream events -----
+function findToolCall(callId, messages = state.messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const call = (messages[i].toolCalls || []).find(c => c.id === callId);
+    if (call) return call;
+  }
+  return null;
+}
+
+function handleAgentEvent(event, obj) {
+  if (event === 'step_start') return true;
+  if (event === 'step_done') {
+    const m = state.messages[obj.msg_idx];
+    if (m && obj.stop_reason !== 'eos') m.stopReason = obj.stop_reason;
+    return true;
+  }
+  if (event === 'tool_call') {
+    const m = state.messages[obj.msg_idx];
+    if (!m) return true;
+    m.toolCalls = m.toolCalls || [];
+    if (!m.toolCalls.some(c => c.id === obj.call_id)) {
+      m.toolCalls.push({
+        id: obj.call_id, step: obj.step, name: obj.name,
+        arguments: obj.arguments || {}, error: obj.error || null,
+        status: obj.error ? 'error' : 'running',
+      });
+    }
+    renderAll();
+    return true;
+  }
+  if (event === 'tool_waiting') {
+    const call = findToolCall(obj.call_id);
+    if (call) call.status = 'waiting';
+    renderAll();
+    const box = document.querySelector(`.tool-call-card[data-call-id="${obj.call_id}"] textarea`);
+    if (box) box.focus({ preventScroll: false });
+    return true;
+  }
+  if (event === 'tool_result') {
+    const call = findToolCall(obj.call_id);
+    if (call) {
+      call.source = obj.source;
+      call.result = obj.content;
+      call.latencyMs = obj.latency_ms ?? null;
+      call.status = obj.source === 'miss' ? 'miss' : (call.error ? 'error' : 'done');
+      if (obj.error) call.note = obj.error;
+    }
+    renderAll();
+    return true;
+  }
+  if (event === 'ledger_check') {
+    if (state.agentRun) state.agentRun.ledgerCheck = obj;
+    if (obj.match === false) console.warn('agent ledger drift', obj);
+    return true;
+  }
+  return false;
+}
+
+// ----- Chat rendering of tool calls / tool results -----
+function agentNotice(reasonOrText, warn = false) {
+  const div = document.createElement('div');
+  div.className = 'agent-notice' + (warn || reasonOrText === 'fixture_miss' ? ' warn' : '');
+  div.textContent = STOP_REASON_TEXT[reasonOrText] || reasonOrText;
+  return div;
+}
+
+function toolCallLabel(call) {
+  if (call.status === 'waiting') return state.streaming ? 'waiting for you' : 'not answered';
+  if (call.status === 'running') return state.streaming ? 'running' : 'interrupted';
+  if (call.status === 'error') return 'invalid call';
+  if (call.status === 'miss') return 'no fixture';
+  return `${call.source || 'done'}${call.latencyMs != null ? ` · ${call.latencyMs} ms` : ''}`;
+}
+
+function renderToolCallCards(mi) {
+  const box = document.createElement('div');
+  box.className = 'tool-calls';
+  for (const call of state.messages[mi].toolCalls) {
+    const card = document.createElement('div');
+    card.className = 'tool-call-card';
+    card.dataset.callId = call.id;
+    const head = document.createElement('div');
+    head.className = 'head';
+    const fn = document.createElement('span');
+    fn.className = 'fn';
+    fn.textContent = `${call.name || '?'}()`;
+    const status = document.createElement('span');
+    status.className = 'status ' + call.status;
+    status.textContent = toolCallLabel(call);
+    head.append(fn, status);
+    card.appendChild(head);
+    const args = document.createElement('div');
+    args.className = 'args';
+    args.textContent = Object.entries(call.arguments || {})
+      .map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join('\n') || '(no arguments)';
+    card.appendChild(args);
+    if (call.error || call.note) {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = call.error
+        ? `${call.error} — returned to the model as an error result.`
+        : `${call.note}. Type the result to add it as a fixture, then re-send.`;
+      card.appendChild(note);
+    }
+    const answering = call.status === 'waiting' && state.streaming;
+    const fixing = call.status === 'miss' && !call.fixtureSaved;
+    if ((answering || fixing) && !isPresentation()) {
+      const ta = document.createElement('textarea');
+      ta.placeholder = answering ? 'Tool result the model will read…' : 'Result to store as a fixture…';
+      ta.value = call.draft || '';
+      ta.oninput = () => { call.draft = ta.value; };
+      ta.onkeydown = (e) => {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); btn.click(); }
+      };
+      const btns = document.createElement('div');
+      btns.className = 'btns';
+      const btn = document.createElement('button');
+      btn.className = 'primary';
+      btn.textContent = answering ? 'Send result' : 'Save as fixture';
+      btn.onclick = () => answering
+        ? submitToolResult(call, ta.value)
+        : saveCallAsFixture(call, ta.value);
+      btns.appendChild(btn);
+      if (answering) {
+        const fixBtn = document.createElement('button');
+        fixBtn.textContent = 'Send + save as fixture';
+        fixBtn.title = 'Also store (arguments → result) in the case so the next run answers automatically';
+        fixBtn.onclick = async () => {
+          if (await saveCallAsFixture(call, ta.value)) submitToolResult(call, ta.value);
+        };
+        btns.prepend(fixBtn);
+      }
+      card.append(ta, btns);
+    }
+    box.appendChild(card);
+  }
+  return box;
+}
+
+function appendToolSourceBadge(roleEl, mi) {
+  const m = state.messages[mi];
+  const call = m.toolCallId ? findToolCall(m.toolCallId) : null;
+  if (!call || !call.source) return;
+  const src = document.createElement('span');
+  src.className = 'src';
+  src.textContent = call.fixtureSaved ? `${call.source} · saved ✓` : call.source;
+  src.title = 'Where this result came from (case fixture, manual, http, …)';
+  roleEl.appendChild(src);
+  const savable = ['manual', 'http', 'default'].includes(call.source) && !call.fixtureSaved;
+  if (savable && !isPresentation() && !state.streaming) {
+    const btn = document.createElement('button');
+    btn.className = 'fixture-btn';
+    btn.textContent = 'Save as fixture';
+    btn.title = 'Store (arguments → this result) in the case so the next run answers automatically';
+    btn.onclick = () => saveCallAsFixture(call, call.result ?? m.content);
+    roleEl.appendChild(btn);
+  }
+}
+
+async function submitToolResult(call, content) {
+  if (!state.streamId) return;
+  try {
+    const resp = await fetch(API + '/api/agent_tool_result', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stream_id: state.streamId, call_id: call.id, content }),
+    });
+    if (!resp.ok) throw new Error(await errorDetail(resp));
+    call.status = 'running';
+    call.draft = '';
+    renderAll();
+  } catch (e) {
+    alert('Could not send the tool result:\n' + e.message);
+  }
+}
+
+// Record (arguments → result) into the case on the server, so the next
+// run of this case answers this call without asking.
+async function saveCallAsFixture(call, content) {
+  const caseId = state.agentRun?.case?.id || state.agent.caseId;
+  if (!caseId) return false;
+  try {
+    const { case: c } = await fetchCase(caseId);
+    const tool = c.tools.find(t => t.name === call.name);
+    if (!tool) throw new Error(`tool ${call.name} is not in case ${caseId}`);
+    const props = Object.keys(tool.parameters?.properties || {});
+    const when = Object.fromEntries(Object.entries(call.arguments || {})
+      .filter(([k]) => !props.length || props.includes(k)));
+    const mock = tool.mock;
+    if (!Object.keys(when).length) {
+      tool.mock = { mode: 'fixed', return: content };
+    } else if (mock.mode === 'sequence') {
+      mock.returns.push(content);
+    } else if (mock.mode === 'match') {
+      const same = mock.cases.find(x => JSON.stringify(x.when) === JSON.stringify(when));
+      if (same) same.return = content; else mock.cases.push({ when, return: content });
+    } else {
+      tool.mock = mock.mode === 'fixed'
+        ? { mode: 'match', cases: [{ when, return: content }], on_miss: 'default', default: mock.return }
+        : { mode: 'match', cases: [{ when, return: content }], on_miss: 'manual' };
+    }
+    const resp = await fetch(API + '/api/cases/' + encodeURIComponent(caseId), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(c),
+    });
+    if (!resp.ok) throw new Error(await errorDetail(resp));
+    const saved = await resp.json();
+    if (state.agent.caseId === caseId) setActiveCase(saved.case, saved.hash);
+    call.fixtureSaved = true;
+    scheduleSaveState();
+    renderAll();
+    return true;
+  } catch (e) {
+    alert('Could not save the fixture:\n' + e.message);
+    return false;
+  }
+}
+
+// ----- Tools modal: case editor -----
+const toolsUi = {
+  cases: [],          // [{id, name, tools, hash, error?}] from GET /api/cases
+  draft: null,        // editable form model (see caseToDraft)
+  loadedId: null,     // id of the saved case the draft came from (null = new)
+  dirty: false,
+  jsonMode: false,
+};
+
+function blankTool() {
+  return {
+    enabled: true, name: '', description: '',
+    paramsText: JSON.stringify({ type: 'object', properties: {}, required: [] }, null, 2),
+    mode: 'manual', ret: '', cases: [], returns: [], url: '', timeout: 30,
+    onMiss: 'manual', defaultText: '',
+  };
+}
+
+function toolToDraft(t) {
+  const m = t.mock || { mode: 'manual' };
+  return {
+    ...blankTool(),
+    enabled: t.enabled !== false,
+    name: t.name || '',
+    description: t.description || '',
+    paramsText: JSON.stringify(t.parameters || { type: 'object', properties: {} }, null, 2),
+    mode: m.mode || 'manual',
+    ret: m.return ?? '',
+    cases: (m.cases || []).map(c => ({ whenText: JSON.stringify(c.when), ret: c.return ?? '' })),
+    returns: (m.returns || []).slice(),
+    url: m.url || '',
+    timeout: m.timeout_s ?? 30,
+    onMiss: m.on_miss || 'manual',
+    defaultText: m.default ?? '',
+  };
+}
+
+function caseToDraft(c) {
+  return {
+    id: c.id || '', name: c.name || '', description: c.description || '',
+    system: c.system || '', prompt: c.prompt || '',
+    run: { max_steps: 8, max_tokens_per_step: 2048, enable_thinking: false, ...(c.run || {}) },
+    tools: (c.tools || []).map(toolToDraft),
+  };
+}
+
+function draftToCase(d) {
+  return {
+    id: d.id.trim(), name: d.name, description: d.description,
+    system: d.system, prompt: d.prompt,
+    run: {
+      max_steps: Number(d.run.max_steps),
+      max_tokens_per_step: Number(d.run.max_tokens_per_step),
+      enable_thinking: !!d.run.enable_thinking,
+    },
+    tools: d.tools.map((t, i) => {
+      const where = `Tool ${i + 1}${t.name ? ` (${t.name})` : ''}`;
+      let parameters;
+      try { parameters = JSON.parse(t.paramsText || '{}'); } catch (e) {
+        throw new Error(`${where}: parameters is not valid JSON — ${e.message}`);
+      }
+      const mock = { mode: t.mode };
+      if (t.mode === 'fixed') mock.return = t.ret;
+      if (t.mode === 'match') {
+        mock.cases = t.cases.map((c, j) => {
+          let when;
+          try { when = JSON.parse(c.whenText); } catch (e) {
+            throw new Error(`${where}, case ${j + 1}: "when" is not valid JSON — ${e.message}`);
+          }
+          return { when, return: c.ret };
+        });
+      }
+      if (t.mode === 'sequence') mock.returns = t.returns.slice();
+      if (t.mode === 'http') { mock.url = t.url; mock.timeout_s = Number(t.timeout) || 30; }
+      if (t.mode === 'match' || t.mode === 'sequence') {
+        mock.on_miss = t.onMiss;
+        if (t.onMiss === 'default') mock.default = t.defaultText;
+      }
+      return { name: t.name.trim(), description: t.description, parameters, enabled: t.enabled, mock };
+    }),
+  };
+}
+
+function setToolsStatus(text, isError = false) {
+  const el = $('tools-status');
+  el.textContent = text;
+  el.classList.toggle('error', isError);
+}
+
+function markToolsDirty() {
+  if (!toolsUi.dirty) {
+    toolsUi.dirty = true;
+    setToolsStatus('Unsaved changes — Save to use them in new messages.');
+  }
+}
+
+function h(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') node.className = v;
+    else if (k === 'dataset') Object.assign(node.dataset, v);
+    else if (k in node) node[k] = v;
+    else node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c != null) node.append(c);
+  return node;
+}
+
+// Text/number/checkbox input bound to obj[key]; edits mark the draft dirty.
+function bound(tag, obj, key, { onAfter, ...props } = {}) {
+  const node = h(tag, props);
+  const isCheck = props.type === 'checkbox';
+  if (isCheck) node.checked = !!obj[key]; else node.value = obj[key] ?? '';
+  node.addEventListener(isCheck ? 'change' : 'input', () => {
+    obj[key] = isCheck ? node.checked : node.value;
+    markToolsDirty();
+    if (onAfter) onAfter(node);
+  });
+  return node;
+}
+
+function jsonValidity(node) {
+  try { JSON.parse(node.value); node.classList.remove('invalid'); } catch (e) { node.classList.add('invalid'); }
+}
+
+function field(label, control, hint) {
+  return h('div', { class: 'field' }, h('label', {}, label), control,
+    hint ? h('div', { class: 'hint' }, hint) : null);
+}
+
+function select(options, value, onChange) {
+  const node = h('select', {});
+  for (const [v, label] of Object.entries(options)) node.append(h('option', { value: v }, label));
+  node.value = value;
+  node.onchange = () => { onChange(node.value); markToolsDirty(); renderToolsForm(); };
+  return node;
+}
+
+function renderToolCard(t, i) {
+  const d = toolsUi.draft;
+  const remove = h('button', { class: 'mini-btn danger', type: 'button', textContent: 'Remove' });
+  remove.onclick = () => { d.tools.splice(i, 1); markToolsDirty(); renderToolsForm(); };
+  const enabled = bound('input', t, 'enabled', {
+    type: 'checkbox', title: 'Enabled tools are rendered into the prompt',
+    onAfter: () => renderToolsForm(),
+  });
+  const card = h('div', { class: 'tool-card' + (t.enabled ? '' : ' disabled') },
+    h('div', { class: 'row field' }, enabled,
+      bound('input', t, 'name', { type: 'text', class: 'mono grow', placeholder: 'tool_name', spellcheck: false }),
+      remove),
+    field('Description', bound('input', t, 'description', { type: 'text', placeholder: 'What the tool does (the model reads this)' })),
+    field('Parameters (JSON schema)', bound('textarea', t, 'paramsText', {
+      class: 'mono', rows: 5, spellcheck: false, onAfter: jsonValidity,
+    })),
+  );
+  const modeRow = h('div', { class: 'row field' },
+    h('label', { style: 'margin:0' }, 'Returns'),
+    h('div', { class: 'grow' }, select(MOCK_MODE_LABELS, t.mode, v => { t.mode = v; })));
+  if (t.mode === 'match' || t.mode === 'sequence') {
+    modeRow.append(h('label', { style: 'margin:0;white-space:nowrap' }, 'If nothing matches'),
+      h('div', { class: 'grow' }, select(ON_MISS_LABELS, t.onMiss, v => { t.onMiss = v; })));
+  }
+  card.append(modeRow);
+  if (t.mode === 'fixed') {
+    card.append(field('Result', bound('textarea', t, 'ret', { class: 'mono', rows: 3, spellcheck: false })));
+  } else if (t.mode === 'match') {
+    t.cases.forEach((c, j) => {
+      const del = h('button', { class: 'mini-btn danger', type: 'button', textContent: '×', title: 'Remove case' });
+      del.onclick = () => { t.cases.splice(j, 1); markToolsDirty(); renderToolsForm(); };
+      card.append(h('div', { class: 'mock-case' },
+        bound('textarea', c, 'whenText', {
+          class: 'mono', rows: 2, spellcheck: false, placeholder: '{"city": "Paris"}',
+          title: 'Arguments to match: literal values, "*" (any value) or {"regex": "..."}',
+          onAfter: jsonValidity,
+        }),
+        bound('textarea', c, 'ret', { class: 'mono', rows: 2, spellcheck: false, placeholder: 'result for these arguments' }),
+        del));
+    });
+    const add = h('button', { class: 'mini-btn', type: 'button', textContent: '+ Add case' });
+    add.onclick = () => { t.cases.push({ whenText: '{}', ret: '' }); markToolsDirty(); renderToolsForm(); };
+    card.append(h('div', { class: 'hint' },
+      'when → result. First matching case wins; values match literally, "*" = any value, {"regex": "..."} = pattern.'), add);
+  } else if (t.mode === 'sequence') {
+    t.returns.forEach((_, j) => {
+      const del = h('button', { class: 'mini-btn danger', type: 'button', textContent: '×' });
+      del.onclick = () => { t.returns.splice(j, 1); markToolsDirty(); renderToolsForm(); };
+      card.append(h('div', { class: 'mock-seq' }, h('span', { class: 'idx' }, `#${j + 1}`),
+        bound('textarea', t.returns, j, { class: 'mono', rows: 2, spellcheck: false }), del));
+    });
+    const add = h('button', { class: 'mini-btn', type: 'button', textContent: '+ Add result' });
+    add.onclick = () => { t.returns.push(''); markToolsDirty(); renderToolsForm(); };
+    card.append(add);
+  } else if (t.mode === 'manual') {
+    card.append(h('div', { class: 'hint' },
+      'The run pauses at each call and asks for the result in the chat; you can save what you type as a fixture.'));
+  } else if (t.mode === 'http') {
+    card.append(h('div', { class: 'grid-2' },
+      field('URL', bound('input', t, 'url', { type: 'url', class: 'mono', placeholder: 'http://host:port/tool' }),
+        'POSTs {"name", "arguments", "case_id"}; the response body is the result.'),
+      field('Timeout (s)', bound('input', t, 'timeout', { type: 'number', min: 1 }))));
+  }
+  if ((t.mode === 'match' || t.mode === 'sequence') && t.onMiss === 'default') {
+    card.append(field('Default result', bound('textarea', t, 'defaultText', { class: 'mono', rows: 2 })));
+  }
+  return card;
+}
+
+function renderToolsForm() {
+  const body = $('tools-body');
+  const scroll = body.scrollTop;
+  body.innerHTML = '';
+  $('case-json').textContent = toolsUi.jsonMode ? 'Edit form' : 'Edit JSON';
+  const d = toolsUi.draft;
+  if (!d) return;
+  if (toolsUi.jsonMode) {
+    let text;
+    try { text = JSON.stringify(draftToCase(d), null, 2); } catch (e) { text = ''; setToolsStatus(e.message, true); }
+    const ta = h('textarea', { id: 'case-json-text', class: 'mono', rows: 28, spellcheck: false, value: text });
+    ta.oninput = () => { markToolsDirty(); jsonValidity(ta); };
+    body.append(ta);
+    return;
+  }
+  const idInput = bound('input', d, 'id', { type: 'text', class: 'mono', placeholder: 'my_case', spellcheck: false });
+  body.append(
+    h('div', { class: 'grid-2' },
+      field('Case ID', idInput, 'Saved as data/cases/<id>.json. A new ID saves a copy.'),
+      field('Name', bound('input', d, 'name', { type: 'text', placeholder: 'Readable name' }))),
+    field('Notes', bound('input', d, 'description', { type: 'text', placeholder: 'What this case tests' })),
+    field('System prompt', bound('textarea', d, 'system', { rows: 2 }),
+      'Sent as the system message; the chat template adds the tool list.'),
+    field('Seed prompt', bound('textarea', d, 'prompt', { rows: 2 }),
+      'Pre-fills the chat box when you pick this case on an empty conversation.'),
+    h('div', { class: 'grid-3' },
+      field('Max steps', bound('input', d.run, 'max_steps', { type: 'number', min: 1, max: 64 }),
+        'Model turns per message'),
+      field('Max tokens / step', bound('input', d.run, 'max_tokens_per_step', { type: 'number', min: 1 })),
+      field('Thinking', h('label', { class: 'tools-enable' },
+        bound('input', d.run, 'enable_thinking', { type: 'checkbox' }), '<think> enabled'))),
+  );
+  const add = h('button', { class: 'mini-btn', type: 'button', textContent: '+ Add tool' });
+  add.onclick = () => { d.tools.push(blankTool()); markToolsDirty(); renderToolsForm(); };
+  const imp = h('button', { class: 'mini-btn', type: 'button', textContent: 'Import OpenAI tools JSON' });
+  imp.onclick = importOpenAiTools;
+  body.append(h('div', { class: 'section-title' },
+    h('span', {}, `Tools (${d.tools.filter(t => t.enabled).length} enabled)`), imp, add));
+  if (!d.tools.length) {
+    body.append(h('div', { class: 'hint' }, 'No tools yet. Add one, or import an OpenAI-style tools array.'));
+  }
+  d.tools.forEach((t, i) => body.append(renderToolCard(t, i)));
+  body.scrollTop = scroll;
+}
+
+function importOpenAiTools() {
+  const raw = prompt('Paste an OpenAI-style tools array (or {"tools": [...]}):');
+  if (!raw) return;
+  try {
+    let list = JSON.parse(raw);
+    if (!Array.isArray(list)) list = list.tools;
+    if (!Array.isArray(list)) throw new Error('expected an array of tools');
+    for (const x of list) toolsUi.draft.tools.push(toolToDraft({ ...(x.function || x), mock: { mode: 'manual' } }));
+    markToolsDirty();
+    renderToolsForm();
+    setToolsStatus(`Imported ${list.length} tool(s) with manual results — set their results, then Save.`);
+  } catch (e) {
+    setToolsStatus('Import failed: ' + e.message, true);
+  }
+}
+
+// Commit the JSON editor (if open) back into the form model.
+function syncJsonIntoDraft() {
+  if (!toolsUi.jsonMode) return;
+  const parsed = JSON.parse($('case-json-text').value);
+  toolsUi.draft = caseToDraft(parsed);
+}
+
+function renderCaseSelect() {
+  const sel = $('case-select');
+  sel.innerHTML = '';
+  if (!toolsUi.loadedId) sel.append(h('option', { value: '' }, '— new case (unsaved) —'));
+  for (const c of toolsUi.cases) {
+    const label = c.error ? `${c.id} — invalid: ${c.error}`
+      : `${c.name}${c.name !== c.id ? ` (${c.id})` : ''} · ${c.tools.length} tool${c.tools.length === 1 ? '' : 's'}`;
+    sel.append(h('option', { value: c.id }, label));
+  }
+  sel.value = toolsUi.loadedId || '';
+}
+
+async function refreshCaseList() {
+  const resp = await fetch(API + '/api/cases');
+  toolsUi.cases = resp.ok ? (await resp.json()).cases : [];
+}
+
+function newCaseDraft(base = null) {
+  const ids = new Set(toolsUi.cases.map(c => c.id));
+  let n = 1;
+  const stem = base ? `${base.id}_copy` : 'case';
+  let id = base ? stem : `${stem}_${n}`;
+  while (ids.has(id)) id = `${stem}_${++n}`;
+  toolsUi.draft = base ? { ...JSON.parse(JSON.stringify(base)), id, name: `${base.name} (copy)` }
+    : caseToDraft({ id, name: id });
+  toolsUi.loadedId = null;
+  toolsUi.dirty = true;
+  renderCaseSelect();
+  renderToolsForm();
+  setToolsStatus('New case — Save to store it on the server.');
+}
+
+async function loadCaseIntoEditor(caseId) {
+  try {
+    const { case: c, hash } = await fetchCase(caseId);
+    toolsUi.draft = caseToDraft(c);
+    toolsUi.loadedId = c.id;
+    toolsUi.dirty = false;
+    setActiveCase(c, hash);
+    maybeSeedPrompt(c);
+    renderCaseSelect();
+    renderToolsForm();
+    setToolsStatus(`Case ${c.id} · hash ${hash} · ${state.agent.toolNames.length} tool(s) enabled` +
+      (state.agent.enabled ? '' : ' — tick “Use tools” to run new messages with it.'));
+  } catch (e) {
+    setToolsStatus(`Could not load ${caseId}: ${e.message}`, true);
+  }
+}
+
+function maybeSeedPrompt(c) {
+  if (c.prompt && state.messages.length === 0 && !chatInputValue().trim()) setChatInputValue(c.prompt);
+}
+
+async function openToolsModal() {
+  if (isPresentation() || state.streaming) return;
+  uiSetPopover('tools');
+  $('agent-enabled').checked = state.agent.enabled;
+  toolsUi.jsonMode = false;
+  await refreshCaseList();
+  const target = state.agent.caseId && toolsUi.cases.some(c => c.id === state.agent.caseId)
+    ? state.agent.caseId : (toolsUi.cases.find(c => !c.error)?.id || null);
+  if (toolsUi.dirty && toolsUi.draft) {
+    renderCaseSelect();
+    renderToolsForm();
+  } else if (target) {
+    await loadCaseIntoEditor(target);
+  } else {
+    newCaseDraft();
+  }
+}
+
+function closeToolsModal() {
+  if (ui.popover === 'tools') uiSetPopover(null);
+  $('tools-btn').focus({ preventScroll: true });
+}
+
+async function saveToolsDraft() {
+  let caseObj;
+  try {
+    syncJsonIntoDraft();
+    caseObj = draftToCase(toolsUi.draft);
+  } catch (e) {
+    setToolsStatus(e.message, true);
+    return;
+  }
+  const exists = toolsUi.cases.some(c => c.id === caseObj.id);
+  if (exists && caseObj.id !== toolsUi.loadedId &&
+      !confirm(`Case ${caseObj.id} already exists. Overwrite it?`)) return;
+  const resp = await fetch(API + '/api/cases/' + encodeURIComponent(caseObj.id), {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(caseObj),
+  });
+  if (!resp.ok) {
+    setToolsStatus('Not saved: ' + await errorDetail(resp), true);
+    return;
+  }
+  const saved = await resp.json();
+  state.agent.enabled = true;
+  $('agent-enabled').checked = true;
+  setActiveCase(saved.case, saved.hash);
+  maybeSeedPrompt(saved.case);
+  toolsUi.draft = caseToDraft(saved.case);
+  toolsUi.loadedId = saved.case.id;
+  toolsUi.dirty = false;
+  await refreshCaseList();
+  renderCaseSelect();
+  renderToolsForm();
+  setToolsStatus(`Saved ${saved.case.id} · hash ${saved.hash} · new messages run with ` +
+    `${state.agent.toolNames.length} tool(s): ${state.agent.toolNames.join(', ') || '—'}`);
+}
+
+async function deleteCurrentCase() {
+  const id = toolsUi.loadedId;
+  if (!id || !confirm(`Delete case ${id} from the server?`)) return;
+  const resp = await fetch(API + '/api/cases/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (!resp.ok) { setToolsStatus('Delete failed: ' + await errorDetail(resp), true); return; }
+  if (state.agent.caseId === id) setActiveCase(null);
+  $('agent-enabled').checked = state.agent.enabled;
+  toolsUi.dirty = false;
+  await refreshCaseList();
+  const next = toolsUi.cases.find(c => !c.error);
+  if (next) await loadCaseIntoEditor(next.id); else newCaseDraft();
+}
+
+$('tools-btn').onclick = () => openToolsModal();
+$('tools-close').onclick = closeToolsModal;
+$('tools-save').onclick = () => saveToolsDraft();
+$('case-new').onclick = () => {
+  if (toolsUi.dirty && !confirm('Discard unsaved changes?')) return;
+  toolsUi.jsonMode = false;
+  newCaseDraft();
+};
+$('case-dup').onclick = () => {
+  try { syncJsonIntoDraft(); } catch (e) { setToolsStatus(e.message, true); return; }
+  toolsUi.jsonMode = false;
+  newCaseDraft(toolsUi.draft);
+};
+$('case-del').onclick = () => deleteCurrentCase();
+$('case-json').onclick = () => {
+  if (toolsUi.jsonMode) {
+    try { syncJsonIntoDraft(); } catch (e) { setToolsStatus('Invalid JSON: ' + e.message, true); return; }
+  }
+  toolsUi.jsonMode = !toolsUi.jsonMode;
+  renderToolsForm();
+};
+$('case-select').onchange = async (e) => {
+  const id = e.target.value;
+  if (toolsUi.dirty && !confirm('Discard unsaved changes?')) { renderCaseSelect(); return; }
+  toolsUi.jsonMode = false;
+  if (id) await loadCaseIntoEditor(id);
+};
+$('agent-enabled').onchange = (e) => {
+  if (e.target.checked && !state.agent.caseId) {
+    e.target.checked = false;
+    setToolsStatus('Save a case first — new messages need a stored case to run with.', true);
+    return;
+  }
+  state.agent.enabled = e.target.checked;
+  saveAgentConfig();
+  updateToolsButton();
+};
+{
+  // Dismiss only when a primary press starts AND ends on the backdrop.
+  const backdrop = $('tools-backdrop');
+  let pressId = null;
+  backdrop.addEventListener('pointerdown', (e) => {
+    pressId = e.isPrimary && e.button === 0 && e.target === e.currentTarget ? e.pointerId : null;
+  });
+  backdrop.addEventListener('pointerup', (e) => {
+    const hit = pressId === e.pointerId && e.target === e.currentTarget;
+    pressId = null;
+    if (hit) closeToolsModal();
+  });
+}
+
 ensureInfoReady();
-loadGithubStars();
 loadSettings();
+loadAgentConfig();
 applyUiState();
 // A shared link opens its conversation directly; any failure (deleted or
 // renamed session) clears the fragment and falls back to the picker
