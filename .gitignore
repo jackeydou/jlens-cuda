@@ -9,3 +9,5 @@ data/sessions/
 data/bands/*.json
 .claude/launch.json
 slurm/hpc.env
+data/cases/*
+!data/cases/weather_demo.json
