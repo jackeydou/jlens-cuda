@@ -662,6 +662,41 @@ class ChatMessage(BaseModel):
     content: str
 
 
+def _split_reasoning(text: str) -> tuple[str, str]:
+    """Split an assistant turn's text into (reasoning, answer).
+
+    A thinking-mode generation streams "reasoning\\n</think>\\n\\nanswer" (the
+    opening <think> lives in the generation prompt), and a replayed
+    historical turn comes back as "<think>\\n…\\n</think>\\n\\nanswer". The
+    Qwen3.x template re-wraps every assistant turn in its own <think> block
+    from `reasoning_content`, so passing the raw text as `content` would nest
+    a second block (and grow by one empty block per replay).
+    """
+    parts: list[str] = []
+    rest = text
+    while "</think>" in rest:
+        head, _, rest = rest.partition("</think>")
+        head = head.strip().removeprefix("<think>").strip()
+        if head:
+            parts.append(head)
+        if not rest.lstrip().startswith("<think>"):
+            break
+    return "\n\n".join(parts), rest.strip()
+
+
+def _template_messages(messages: list[ChatMessage]) -> list[dict[str, str]]:
+    """ChatMessages -> chat-template dicts, reasoning split off assistant turns."""
+    out = []
+    for m in messages:
+        if m.role == "assistant" and m.content:
+            reasoning, answer = _split_reasoning(m.content)
+            out.append({"role": m.role, "content": answer,
+                        "reasoning_content": reasoning})
+        else:
+            out.append({"role": m.role, "content": m.content})
+    return out
+
+
 class ChatStreamRequest(BaseModel):
     messages: list[ChatMessage]
     max_tokens: int = 32
@@ -669,7 +704,9 @@ class ChatStreamRequest(BaseModel):
     top_n: int = 10
     # Qwen3.x thinking: disabled by default for the demo — the <think>
     # block burns hundreds of tokens before the answer. The J-lens stays
-    # exact either way (this only changes the prompt template).
+    # exact either way (this only changes the prompt template). Note the
+    # Qwen3.8 template also injects a "Reasoning effort is set to xhigh"
+    # system turn when thinking is on.
     enable_thinking: bool = False
     # J-space edits applied during prefill + generation. Empty list =
     # byte-identical clean behavior. NOTE: for a meaningful baseline vs
@@ -1310,8 +1347,7 @@ async def chat_stream(req: ChatStreamRequest):
                 if any(r["segment"] == "generation" for r in resolved_specs):
                     last = eff_messages[-1]
                     if last.role == "assistant" and not last.content:
-                        pm = [{"role": m.role, "content": m.content}
-                              for m in eff_messages[:-1]]
+                        pm = _template_messages(eff_messages[:-1])
                         pids = tok.apply_chat_template(
                             pm, add_generation_prompt=True,
                             enable_thinking=req.enable_thinking)
@@ -1389,7 +1425,7 @@ async def chat_stream(req: ChatStreamRequest):
             for msg_idx in range(n_to_process):
                 msg = eff_messages[msg_idx]
                 # Apply the template for messages[0..msg_idx] without generation prompt.
-                prefix_msgs = [{"role": m.role, "content": m.content} for m in eff_messages[:msg_idx + 1]]
+                prefix_msgs = _template_messages(eff_messages[:msg_idx + 1])
                 formatted_ids = tok.apply_chat_template(prefix_msgs, add_generation_prompt=False, enable_thinking=req.enable_thinking)
                 if isinstance(formatted_ids, list):
                     formatted_ids_list = formatted_ids
@@ -1441,7 +1477,7 @@ async def chat_stream(req: ChatStreamRequest):
                 msg_idx = len(eff_messages) - 1
                 # Apply the template with add_generation_prompt=True to get
                 # the generation prefix (ends with <|im_start|>assistant\n...).
-                prefix_msgs = [{"role": m.role, "content": m.content} for m in eff_messages[:-1]]
+                prefix_msgs = _template_messages(eff_messages[:-1])
                 gen_prefix_ids = tok.apply_chat_template(prefix_msgs, add_generation_prompt=True, enable_thinking=req.enable_thinking)
                 if isinstance(gen_prefix_ids, list):
                     gen_prefix_list = gen_prefix_ids
