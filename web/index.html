@@ -468,6 +468,10 @@
   :is(#settings-popup, #intervene-popup, #tools-popup) .field label {
     display: block; font-size: 12px; color: var(--settings-text-secondary); margin-bottom: 4px;
   }
+  #settings-popup .field.check label {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+  }
+  #settings-popup .field.check input { margin: 0; accent-color: var(--settings-accent); }
   :is(#settings-popup, #intervene-popup, #tools-popup) .field label .value {
     float: right;
     color: var(--settings-accent);
@@ -2314,6 +2318,10 @@
         <input id="set-top-n" type="number" min="1" max="50" step="1">
         <div class="hint">How many top tokens to show per grid cell / detail panel.</div>
       </div>
+      <div class="field check">
+        <label for="set-thinking"><input id="set-thinking" type="checkbox"> Enable thinking</label>
+        <div class="hint">Lets the model reason in a &lt;think&gt; block before answering (shown dimmed). The Qwen3.8 template also adds a "Reasoning effort is set to xhigh" system turn. Wish search is unavailable for thinking conversations. Plain chat only — agent cases use their own &lt;think&gt; setting.</div>
+      </div>
       <div class="actions">
         <button class="cancel" id="settings-cancel">Cancel</button>
         <button class="ok" id="settings-ok">OK</button>
@@ -2481,7 +2489,7 @@ let state = {
   // recover the quota-trimmed localStorage cache on reload.
   sourceSessionId: null,
   // Generation settings (configurable via the settings popup).
-  settings: { maxTokens: 262144, temp: 0.0, topN: 10 },
+  settings: { maxTokens: 262144, temp: 0.0, topN: 10, enableThinking: false },
   // Agent mode (Tools modal): which server-side case new messages run
   // with. Persisted separately from the conversation (AGENT_KEY).
   agent: { enabled: false, caseId: null, caseHash: null, toolNames: [] },
@@ -2978,6 +2986,7 @@ function loadSettings() {
       state.settings.maxTokens = s.maxTokens != null ? s.maxTokens : MODEL_MAX_CONTEXT;
       state.settings.temp = s.temp != null ? s.temp : 0.0;
       state.settings.topN = s.topN != null ? s.topN : 10;
+      state.settings.enableThinking = !!s.enableThinking;
     }
   } catch (e) {}
   syncSettingsInputs();
@@ -3008,6 +3017,7 @@ function syncSettingsInputs() {
   updateRangeProgress(tempInput);
   $('set-temp-value').textContent = temp.toFixed(1);
   $('set-top-n').value = state.settings.topN;
+  $('set-thinking').checked = !!state.settings.enableThinking;
 }
 
 function readSettingsFromInputs() {
@@ -3017,6 +3027,7 @@ function readSettingsFromInputs() {
   const tempMax = parseFloat(tempInput.max) || 2;
   state.settings.temp = parseFloat(tempInput.value) || 0;
   state.settings.topN = parseInt($('set-top-n').value) || 10;
+  state.settings.enableThinking = $('set-thinking').checked;
   if (state.settings.maxTokens < 1) state.settings.maxTokens = 1;
   state.settings.temp = Math.max(tempMin, Math.min(tempMax, state.settings.temp));
   if (state.settings.topN < 1) state.settings.topN = 1;
@@ -3518,9 +3529,18 @@ function renderChat({ scrollToBottom = false, scrollToTop = false } = {}) {
       ph.textContent = m.role === 'assistant' && state.streaming ? '…' : '…';
       bubble.appendChild(ph);
     } else {
+      // Reasoning = tokens up to and including </think>; while a thinking
+      // run is still streaming without one, the whole reply is reasoning.
+      let thinkEnd = m.role === 'assistant'
+        ? m.tokens.findIndex(t => t.text.includes('</think>')) : -1;
+      if (thinkEnd === -1 && m.role === 'assistant' && state.streaming &&
+          state.streamThinking && mi === state.messages.length - 1) {
+        thinkEnd = m.tokens.length;
+      }
       m.tokens.forEach((t, ti) => {
         const span = document.createElement('span');
         span.className = t.segment && t.segment !== 'content' ? `tok seg-${t.segment}` : 'tok';
+        if (!t.segment && ti <= thinkEnd) span.classList.add('seg-reasoning');
         span.textContent = t.text;
         span.title = `msg ${mi} tok ${ti} pos ${t.globalPos}`;
         span.dataset.msgIdx = mi;
@@ -6435,7 +6455,9 @@ async function sendMessage() {
     temp: state.settings.temp,
     top_n: state.settings.topN,
   };
+  // Agent cases carry their own run.enable_thinking.
   if (agentActive()) payload.case_id = state.agent.caseId;
+  else payload.enable_thinking = !!state.settings.enableThinking;
   if (state.appliedInterventions.length) {
     payload.interventions = state.appliedInterventions.map(specToPayload);
   }
@@ -6449,6 +6471,9 @@ async function sendMessage() {
 // (HTTP error before any frame), true otherwise.
 async function streamChat(payload) {
   let ok = true;
+  // Until </think> streams in, every reply token of a thinking chat run is
+  // reasoning (agent runs segment reasoning server-side).
+  state.streamThinking = !payload.case_id && !!payload.enable_thinking;
   const controller = new AbortController();
   state.streamAbortController = controller;
   try {
@@ -6689,6 +6714,7 @@ async function rerunWithSpecs(specs, {
     // that verification even when the normal composer uses sampling.
     temp: tempOverride === null ? state.settings.temp : tempOverride,
     top_n: state.settings.topN,
+    ...(agentCaseId ? {} : { enable_thinking: !!state.settings.enableThinking }),
     interventions: specs.map(specToPayload),
   };
   const ok = await streamChat(payload);
@@ -7408,6 +7434,15 @@ function dismissWishPopover({ updateClearance = true } = {}) {
 // Chat tokens and token-rail labels share this path. Keeping wish creation
 // attached to selection (rather than to one DOM surface's click event)
 // makes both representations of the same reply token behave identically.
+function conversationHasThinking() {
+  // Any assistant turn with non-empty reasoning before its </think>.
+  return state.messages.some(m => {
+    const text = m.role === 'assistant' ? (m.content || '') : '';
+    return text.includes('</think>') &&
+      text.split('</think>')[0].replace('<think>', '').trim() !== '';
+  });
+}
+
 function openWishForReplyToken(msgIdx, tokenIdx) {
   if (isPresentation() || state.streaming) {
     dismissWishPopover();
@@ -7415,6 +7450,12 @@ function openWishForReplyToken(msgIdx, tokenIdx) {
   }
   const m = state.messages[msgIdx];
   if (!m || m.role !== 'assistant') {
+    dismissWishPopover();
+    return false;
+  }
+  // Wish search replays the turn with thinking off (the server requires it),
+  // which would not reproduce a thinking conversation's prompt.
+  if (state.settings.enableThinking || conversationHasThinking()) {
     dismissWishPopover();
     return false;
   }
