@@ -8,3 +8,4 @@ data/corpus/*.jsonl
 data/sessions/
 data/bands/*.json
 .claude/launch.json
+slurm/hpc.env
