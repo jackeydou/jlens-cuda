@@ -141,6 +141,18 @@ def test_char_to_token_spans():
     assert agent.char_to_token_spans(offsets, [(4, 9), (10, 10)]) == [(2, 3), (4, 4)]
 
 
+def test_encode_with_offsets_through_chat_tokenizer():
+    # serve passes the ChatTokenizer proxy, which must stay callable.
+    from jlens_qwen.model import ChatTokenizer
+
+    def fake(text, **kw):
+        return {"input_ids": [ord(c) for c in text],
+                "offset_mapping": [(i, i + 1) for i in range(len(text))]}
+
+    ids, offs = agent.encode_with_offsets(ChatTokenizer(fake), "ab")
+    assert ids == [97, 98] and offs == [(0, 1), (1, 2)]
+
+
 # ----- against the real Qwen3.8 chat template -----
 
 def _qwen_tokenizer():

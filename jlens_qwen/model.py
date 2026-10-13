@@ -122,6 +122,10 @@ class ChatTokenizer:
     def __len__(self) -> int:
         return len(self._tok)
 
+    # Dunder lookups bypass __getattr__, so calling must be forwarded explicitly.
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self._tok(*args, **kwargs)
+
     @property
     def hf(self) -> Any:
         """The wrapped HuggingFace tokenizer."""
