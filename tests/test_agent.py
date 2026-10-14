@@ -219,12 +219,13 @@ class _Session:
 class _Model:
     n_layers = 4
 
-    def __init__(self, tok, fed):
+    def __init__(self, tok, fed, session_cls=_Session):
         self.tokenizer = tok
         self.fed = fed
+        self.session_cls = session_cls
 
     def make_stream(self, capture_layers=None):
-        return _Session(self.fed)
+        return self.session_cls(self.fed)
 
 
 def _parse_sse(raw: bytes):
@@ -236,11 +237,12 @@ def _parse_sse(raw: bytes):
     return out
 
 
-def _run_agent(monkeypatch, tmp_path, tok, case, script, on_event=None):
+def _run_agent(monkeypatch, tmp_path, tok, case, script, on_event=None,
+               interventions=(), session_cls=_Session):
     fed: list[int] = []
     (tmp_path / f"{case['id']}.json").write_text(json.dumps(case))
     monkeypatch.setattr(serve, "_cases_dir", tmp_path)
-    monkeypatch.setattr(serve, "_model", _Model(tok, fed))
+    monkeypatch.setattr(serve, "_model", _Model(tok, fed, session_cls))
     monkeypatch.setattr(serve, "_lens", None)
     monkeypatch.setattr(serve, "_record_layers", lambda: [3])
     monkeypatch.setattr(serve, "_readout_at_positions", lambda acts, pos, layers, n: {
@@ -252,7 +254,8 @@ def _run_agent(monkeypatch, tmp_path, tok, case, script, on_event=None):
     async def main():
         resp = await serve.agent_stream(serve.AgentStreamRequest(
             case_id=case["id"],
-            messages=[serve.AgentMessage(role="user", content="Paris or Rome?")]))
+            messages=[serve.AgentMessage(role="user", content="Paris or Rome?")],
+            interventions=list(interventions)))
         body = b""
         async for chunk in resp.body_iterator:
             body += chunk
@@ -287,6 +290,41 @@ def test_agent_stream_two_steps(monkeypatch, tmp_path, qwen_tok):
     assert (done["stop_reason"], done["n_steps"], done["msg_idx"]) == ("final", 2, 4)
     assert dict(events)["ledger_check"]["match"] is True
     assert len(fed) == done["ledger_len"]
+
+
+def test_agent_stream_generation_edits_skip_tool_results(monkeypatch, tmp_path, qwen_tok):
+    """segment=generation edits cover generated tokens, not tool results."""
+    resolved = [{"segment": "generation", "label": "gen"},
+                {"segment": None, "label": "ctx"}]
+    monkeypatch.setattr(serve, "_validate_and_resolve_specs", lambda *a: resolved)
+    monkeypatch.setattr(serve, "_compile_resolved_edits",
+                        lambda specs, gen_from: [r["label"] for r in specs])
+    extends: list[tuple[int, tuple]] = []
+
+    class Recording(_Session):
+        active: tuple = ()
+
+        def set_edits(self, edits):
+            self.active = tuple(edits)
+
+        def extend(self, ids):
+            extends.append((len(ids), self.active))
+            return super().extend(ids)
+
+    eos = qwen_tok.eos_token_id
+    script = (qwen_tok.encode(CALL, add_special_tokens=False) + [eos]
+              + qwen_tok.encode("Paris: sunny.", add_special_tokens=False) + [eos])
+    spec = serve.InterventionSpec(mode="ablate", layers=[1], segment="generation",
+                                  ablate_token_ids=[5])
+    events, _, _ = _run_agent(monkeypatch, tmp_path, qwen_tok, _case(), script,
+                              interventions=[spec], session_cls=Recording)
+    assert dict(events)["done"]["stop_reason"] == "final"
+    first_gen = next(i for i, (n, _) in enumerate(extends) if n == 1)
+    assert all(active == ("gen", "ctx") for _, active in extends[:first_gen])
+    generated = [active for n, active in extends[first_gen:] if n == 1]
+    tool_chunks = [active for n, active in extends[first_gen:] if n > 1]
+    assert set(generated) == {("gen", "ctx")}
+    assert tool_chunks == [("ctx",)]
 
 
 def test_agent_stream_strict_miss_stops(monkeypatch, tmp_path, qwen_tok):

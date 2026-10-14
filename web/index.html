@@ -2540,7 +2540,7 @@ let state = {
   // Erase (Erase modal): a concept set ablated on every new message.
   // Persisted separately from the conversation (ERASE_KEY); each user turn
   // stamps a copy as m.erase.
-  erase: { enabled: false, words: '', skipped: [], layers: [], scope: 'all', alpha: 1, tokens: [] },
+  erase: { enabled: false, words: '', skipped: [], layers: [], scope: 'all', alpha: 1, tokens: [], identity: '' },
   // The frozen case + hash the last agent stream actually ran with (from
   // its stream_start frame), plus its ledger check. Saved with sessions.
   agentRun: null,
@@ -3340,7 +3340,7 @@ async function loadInfo() {
     // state on first load.
     renderInterventionRecipes();
     renderInterventions();
-    updateEraseButton();
+    revalidateErase();
     return true;
   } catch (e) {
     console.warn('loadInfo failed:', e);
@@ -9333,10 +9333,13 @@ function eraseStamp() {
   return state.erase.enabled ? eraseConfigStamp() : null;
 }
 
-// The configured erase whether or not it is switched on (for A/B).
+// The configured erase whether or not it is switched on (for A/B). Token
+// ids and layers are only valid for the model + lens they were resolved
+// against; a stale config stays inert until revalidateErase() re-resolves it.
 function eraseConfigStamp() {
   const e = state.erase;
   if (!e.tokens.length || !e.layers.length || !interventionsAvailable()) return null;
+  if (e.identity !== eraseIdentity()) return null;
   return { words: erasedWords(e), layers: [...e.layers], scope: e.scope,
            alpha: e.alpha, tokens: e.tokens.map(t => ({ ...t })) };
 }
@@ -9477,6 +9480,38 @@ async function compareErase() {
   });
 }
 
+function eraseIdentity() {
+  const lens = state.lensInfo;
+  if (!lens) return '';
+  return JSON.stringify([state.modelId, lens.n_layers, lens.n_prompts, lens.source_layers]);
+}
+
+// After model/lens metadata loads: a config resolved against another model
+// or lens (or saved before identities were recorded) is re-tokenized and
+// its layers re-checked. If that fails or any layer is no longer fitted,
+// the switch goes off rather than running a silently different erase.
+async function revalidateErase() {
+  const e = state.erase;
+  const identity = eraseIdentity();
+  if (!identity || e.identity === identity || !(e.tokens.length || e.words)) {
+    updateEraseButton();
+    return;
+  }
+  let tokens = [], skipped = [];
+  try {
+    const words = eraseWords(e.words);
+    if (words.length && interventionsAvailable()) ({ tokens, skipped } = await resolveEraseTokens(words));
+  } catch (err) {
+    console.warn('erase revalidation failed:', err);
+  }
+  const layers = e.layers.filter(l => layerIntervenable(l));
+  const usable = tokens.length > 0 && layers.length > 0 && layers.length === e.layers.length;
+  state.erase = { ...e, tokens, skipped, layers, identity, enabled: e.enabled && usable };
+  if (e.enabled && !usable) console.warn('erase switched off: config does not fully resolve for this model/lens');
+  saveEraseConfig();
+  updateEraseButton();
+}
+
 function saveEraseConfig() {
   try { localStorage.setItem(ERASE_KEY, JSON.stringify(state.erase)); } catch (e) {}
 }
@@ -9492,6 +9527,7 @@ function loadEraseConfig() {
         scope: saved.scope === 'generation' ? 'generation' : 'all',
         alpha: Number.isFinite(saved.alpha) ? saved.alpha : 1,
         tokens: saved.tokens.filter(t => t && Number.isInteger(t.id)),
+        identity: typeof saved.identity === 'string' ? saved.identity : '',
       };
     }
   } catch (e) {}
@@ -9564,6 +9600,7 @@ async function applyEraseModal() {
     scope: $('erase-scope').value === 'generation' ? 'generation' : 'all',
     alpha: Number($('erase-alpha').value),
     tokens: res.tokens,
+    identity: eraseIdentity(),
   };
   saveEraseConfig();
   updateEraseButton();

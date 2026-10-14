@@ -541,7 +541,8 @@ class InterventionSpec(BaseModel):
     sequence — the same coordinates the readout grid uses — and exactly
     one of `positions`, `from_position`, `segment` must be set.
     `segment: "generation"` means every generated position of this
-    request (resolved server-side to the generation-prefix length).
+    request (resolved server-side to the generation-prefix length; agent
+    streams lift it while feeding tool results between steps).
     The UI's "suppress" is steer with a negative alpha.
     """
 
@@ -1838,10 +1839,21 @@ async def agent_stream(req: AgentStreamRequest):
             "prompt_tokens": len(prompt_ids),
         })
         try:
+            # "generation" scopes cover the model's own tokens only: tool-result
+            # chunks (and the next generation prompt) are fed with them lifted,
+            # matching chat_stream. Compiled per spec to keep same-layer order.
+            all_edits: list = []
+            feed_edits: list = []
             if resolved_specs:
                 async with _gpu_lock:
-                    session.set_edits(await asyncio.to_thread(
-                        _compile_resolved_edits, resolved_specs, len(prompt_ids)))
+                    for r in resolved_specs:
+                        edits = await asyncio.to_thread(
+                            _compile_resolved_edits, [r], len(prompt_ids))
+                        all_edits.extend(edits)
+                        if r["segment"] != "generation":
+                            feed_edits.extend(edits)
+                session.set_edits(all_edits)
+            lift_generation_edits = len(feed_edits) != len(all_edits)
 
             # Prefill: one chunk per client message (content readout only).
             for i, (a, b) in enumerate(spans):
@@ -1985,7 +1997,11 @@ async def agent_stream(req: AgentStreamRequest):
                 tspans = agent_lib.char_to_token_spans(soffs, char_spans)
                 base = len(ledger)
                 local = [p for a, b in tspans for p in range(a, b)] + [len(sids) - 1]
+                if lift_generation_edits:
+                    session.set_edits(feed_edits)
                 row, next_tok = await feed(sids, local)
+                if lift_generation_edits:
+                    session.set_edits(all_edits)
                 o = 0
                 for k, ((c, content, source), (a, b)) in enumerate(zip(results, tspans)):
                     yield snap(msg_idx=msg_idx + 1 + k, token_idx=-1, role="tool",
