@@ -416,7 +416,7 @@
   }
 
   /* settings modal (centered, with a neutral dimming backdrop) */
-  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop) {
+  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop, #erase-backdrop) {
     position: fixed; inset: 0; z-index: 100;
     display: flex;
     align-items: center; justify-content: center;
@@ -432,7 +432,7 @@
                 -webkit-backdrop-filter 240ms ease,
                 visibility 0s linear 240ms;
   }
-  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop).visible {
+  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop, #erase-backdrop).visible {
     background-color: rgba(0,0,0,0.24);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -441,7 +441,7 @@
     pointer-events: auto;
     transition-delay: 0s;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) {
     width: min(380px, 92vw);
     color-scheme: light;
     background: var(--settings-glass);
@@ -460,25 +460,25 @@
                 transform 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
     will-change: opacity, transform;
   }
-  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop).visible :is(#settings-popup, #intervene-popup, #tools-popup) { opacity: 1; transform: translateY(0) scale(1); }
-  :is(#settings-popup, #intervene-popup, #tools-popup) h3 {
+  :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop, #erase-backdrop).visible :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) { opacity: 1; transform: translateY(0) scale(1); }
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) h3 {
     margin: 0 0 14px; font-size: 14px; font-weight: 600; color: var(--settings-text);
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field { margin-bottom: 14px; }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field label {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field { margin-bottom: 14px; }
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field label {
     display: block; font-size: 12px; color: var(--settings-text-secondary); margin-bottom: 4px;
   }
-  #settings-popup .field.check label {
+  :is(#settings-popup, #erase-popup) .field.check label {
     display: flex; align-items: center; gap: 8px; cursor: pointer;
   }
-  #settings-popup .field.check input { margin: 0; accent-color: var(--settings-accent); }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field label .value {
+  :is(#settings-popup, #erase-popup) .field.check input { margin: 0; accent-color: var(--settings-accent); }
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field label .value {
     float: right;
     color: var(--settings-accent);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="number"] {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="number"] {
     width: 100%; font: inherit; font-size: 13px; padding: 6px 10px;
     border: 1px solid var(--glass-recessed-border); border-radius: 12px;
     corner-shape: squircle;
@@ -490,12 +490,12 @@
     -webkit-appearance: none;
     caret-color: var(--settings-accent);
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="number"]:focus {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="number"]:focus {
     border-color: var(--settings-accent);
     outline: 3px solid rgba(255,159,10,0.24);
     outline-offset: 1px;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"] {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="range"] {
     width: 100%;
     --range-progress: 0%;
     height: 18px;
@@ -505,14 +505,14 @@
     accent-color: var(--settings-accent);
     cursor: pointer;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-webkit-slider-runnable-track {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 999px;
     border: 0;
     background: linear-gradient(to right, var(--settings-accent) 0 var(--range-progress), var(--glass-track) var(--range-progress) 100%);
     box-shadow: none;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-webkit-slider-thumb {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 20px; height: 20px;
@@ -522,30 +522,30 @@
     background: var(--glass-accent);
     box-shadow: 0 4px 10px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.30);
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-moz-range-track {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="range"]::-moz-range-track {
     height: 6px;
     border-radius: 999px;
     border: 0;
     background: var(--glass-track);
     box-shadow: none;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-moz-range-progress {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="range"]::-moz-range-progress {
     height: 6px;
     border-radius: 999px;
     background: var(--settings-accent);
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field input[type="range"]::-moz-range-thumb {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field input[type="range"]::-moz-range-thumb {
     width: 20px; height: 20px;
     border: 1px solid rgba(255,255,255,0.34);
     border-radius: 50%;
     background: var(--glass-accent);
     box-shadow: 0 4px 10px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.30);
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .field .hint { font-size: 11px; color: var(--settings-text-tertiary); margin-top: 3px; }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .actions {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .field .hint { font-size: 11px; color: var(--settings-text-tertiary); margin-top: 3px; }
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .actions {
     display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .actions button {
     min-width: 76px; padding: 7px 18px; border-radius: 12px;
     corner-shape: var(--corner-continuous);
     font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--glass-recessed-border);
@@ -557,27 +557,27 @@
     -webkit-appearance: none;
     transition: background 0.12s, transform 0.1s;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button.ok {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .actions button.ok {
     background: var(--settings-accent); color: white;
     border-color: transparent;
     box-shadow: none;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button.ok:hover { background: var(--settings-accent-hover); }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button.cancel:hover { background: var(--settings-control-fill-hover); }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button:focus-visible {
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .actions button.ok:hover { background: var(--settings-accent-hover); }
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .actions button.cancel:hover { background: var(--settings-control-fill-hover); }
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .actions button:focus-visible {
     outline: 3px solid rgba(255,159,10,0.34);
     outline-offset: 2px;
   }
-  :is(#settings-popup, #intervene-popup, #tools-popup) .actions button:active { transform: scale(0.97); }
+  :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) .actions button:active { transform: scale(0.97); }
   @media (prefers-reduced-motion: reduce) {
-    :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop),
-    :is(#settings-popup, #intervene-popup, #tools-popup) { transition: none; }
+    :is(#settings-backdrop, #intervene-backdrop, #tools-backdrop, #erase-backdrop),
+    :is(#settings-popup, #intervene-popup, #tools-popup, #erase-popup) { transition: none; }
   }
 
   /* ----- Agent tools: case editor modal + tool-call rendering ----- */
-  #tools-btn { padding: 0 16px; font-size: 13px; display: flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
-  #tools-btn .agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
-  #tools-btn.active .agent-dot { background: var(--settings-accent); }
+  :is(#tools-btn, #erase-btn) { padding: 0 16px; font-size: 13px; display: flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+  :is(#tools-btn, #erase-btn) .agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
+  :is(#tools-btn, #erase-btn).active .agent-dot { background: var(--settings-accent); }
   #tools-popup {
     width: min(880px, 94vw); max-height: 88vh;
     display: flex; flex-direction: column;
@@ -588,15 +588,19 @@
   #tools-popup .tools-case-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
   #tools-popup .tools-case-row select { flex: 1; }
   #tools-body { overflow-y: auto; min-height: 0; flex: 1; padding-right: 4px; }
-  #tools-popup :is(input[type="text"], input[type="url"], textarea, select),
+  :is(#tools-popup, #erase-popup) :is(input[type="text"], input[type="url"], textarea, select),
   #tools-popup .field input[type="number"] {
     width: 100%; font: inherit; font-size: 13px; padding: 6px 10px;
     border: 1px solid var(--glass-recessed-border); border-radius: 10px;
     background: var(--settings-control-fill); color: var(--settings-text); outline: none;
     box-sizing: border-box;
   }
-  #tools-popup :is(input, textarea, select):focus { border-color: var(--settings-accent); }
-  #tools-popup textarea { resize: vertical; min-height: 34px; }
+  :is(#tools-popup, #erase-popup) :is(input, textarea, select):focus { border-color: var(--settings-accent); }
+  :is(#tools-popup, #erase-popup) textarea { resize: vertical; min-height: 34px; }
+  #erase-popup { width: min(520px, 94vw); }
+  #erase-popup .erase-tokens { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; word-break: break-word; }
+  #erase-status { font-size: 11px; color: var(--settings-text-secondary); min-height: 1em; margin-top: -6px; }
+  #erase-status.error { color: var(--status-danger); }
   #tools-popup .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
   #tools-popup .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   #tools-popup .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
@@ -648,6 +652,7 @@
     border: 1px solid var(--border-2); border-radius: 8px; padding: 6px 8px; background: var(--bg, white); color: var(--text);
   }
   .tool-call-card .btns { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
+  .msg .role .erase-ab { margin-left: 6px; padding: 0 8px; font-size: 10px; }
   .tool-call-card button, .msg .fixture-btn {
     font: inherit; font-size: 11px; padding: 3px 10px; border-radius: 8px; cursor: pointer;
     border: 1px solid var(--border-2); background: transparent; color: var(--text);
@@ -2248,6 +2253,7 @@
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
   <button id="tools-btn" class="corner-action glass-hoverable" title="Agent tools: tool schemas and mock results"><span class="agent-dot"></span><span id="tools-btn-label">Tools</span></button>
+  <button id="erase-btn" class="corner-action glass-hoverable" title="Erase concepts from the residual stream"><span class="agent-dot"></span><span id="erase-btn-label">Erase</span></button>
   </div>
   <div id="corner-actions" class="corner-button-bar">
     <button id="share-btn" class="corner-action glass-hoverable" title="Copy a link to this conversation" hidden><span>Copy Link</span></button>
@@ -2325,6 +2331,44 @@
       <div class="actions">
         <button class="cancel" id="settings-cancel">Cancel</button>
         <button class="ok" id="settings-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Erase modal: ablate a concept set on every new message ===== -->
+  <div id="erase-backdrop" aria-hidden="true" inert>
+    <div id="erase-popup" role="dialog" aria-modal="true" aria-labelledby="erase-title">
+      <h3 id="erase-title">Erase concepts</h3>
+      <div class="field check">
+        <label for="erase-enabled"><input id="erase-enabled" type="checkbox"> Erase in new messages</label>
+        <div class="hint">Projects these concepts' J-lens directions out of the residual stream (ablate) on every new message, chat or agent. Each turn records the erase it ran with, and intervention re-runs keep it.</div>
+      </div>
+      <div class="field">
+        <label for="erase-words">Concepts</label>
+        <textarea id="erase-words" rows="2" placeholder="phishing, scam, fraud, malicious, suspicious"></textarea>
+        <div class="hint erase-tokens" id="erase-tokens">Comma- or newline-separated. Each word is erased as every single-token spelling (with and without a leading space, lower and capitalized).</div>
+      </div>
+      <div class="field">
+        <label for="erase-layers">Layers</label>
+        <input id="erase-layers" type="text" spellcheck="false">
+        <div class="hint">Ranges and lists, e.g. 25-53 or 30,36,42. Defaults to the workspace band.</div>
+      </div>
+      <div class="field">
+        <label for="erase-scope">Positions</label>
+        <select id="erase-scope">
+          <option value="all">Every token (prompt, tool results, generation)</option>
+          <option value="generation">Generated tokens only</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="erase-alpha">Strength <span class="value" id="erase-alpha-value">1.00</span></label>
+        <input id="erase-alpha" type="range" min="0" max="1" step="0.05">
+        <div class="hint">1 removes the whole component; lower values for a dose–response sweep.</div>
+      </div>
+      <div class="hint" id="erase-status" aria-live="polite"></div>
+      <div class="actions">
+        <button class="cancel" id="erase-cancel" type="button">Cancel</button>
+        <button class="ok" id="erase-ok" type="button">OK</button>
       </div>
     </div>
   </div>
@@ -2493,6 +2537,10 @@ let state = {
   // Agent mode (Tools modal): which server-side case new messages run
   // with. Persisted separately from the conversation (AGENT_KEY).
   agent: { enabled: false, caseId: null, caseHash: null, toolNames: [] },
+  // Erase (Erase modal): a concept set ablated on every new message.
+  // Persisted separately from the conversation (ERASE_KEY); each user turn
+  // stamps a copy as m.erase.
+  erase: { enabled: false, words: '', skipped: [], layers: [], scope: 'all', alpha: 1, tokens: [] },
   // The frozen case + hash the last agent stream actually ran with (from
   // its stream_start frame), plus its ledger check. Saved with sessions.
   agentRun: null,
@@ -2579,6 +2627,7 @@ function persistMessage(m) {
   if (m.toolCalls) out.toolCalls = m.toolCalls.map(({ draft, ...c }) => ({ ...c }));
   if (m.stopReason) out.stopReason = m.stopReason;
   if (m.thinking) out.thinking = true;
+  if (m.erase) out.erase = m.erase;
   return out;
 }
 
@@ -2599,6 +2648,7 @@ function reviveMessage(m) {
   if (Array.isArray(m.toolCalls)) out.toolCalls = m.toolCalls.map(c => ({ ...c }));
   if (m.stopReason) out.stopReason = m.stopReason;
   if (m.thinking) out.thinking = true;
+  if (m.erase) out.erase = m.erase;
   return out;
 }
 
@@ -2629,6 +2679,7 @@ function serializableConversation({ trimForLocalStorage = false } = {}) {
       specs: (state.compare.specs || []).map(persistSpec),
       baselineHadInterventions: !!state.compare.baselineHadInterventions,
       configurationLabel: state.compare.configurationLabel || '',
+      baselineLabel: state.compare.baselineLabel || '',
       otherApplied: (state.compare.other.appliedInterventions || []).map(persistSpec),
       otherMessages: state.compare.other.messages.map(persistMessage),
     } : null,
@@ -2802,6 +2853,7 @@ function restoreConversation(saved) {
         specs: (saved.compare.specs || []).filter(validSpecShape).map(reviveSpec),
         baselineHadInterventions: !!saved.compare.baselineHadInterventions,
         configurationLabel: saved.compare.configurationLabel || '',
+        baselineLabel: saved.compare.baselineLabel || '',
         other,
         diff: null,
       };
@@ -3288,6 +3340,7 @@ async function loadInfo() {
     // state on first load.
     renderInterventionRecipes();
     renderInterventions();
+    updateEraseButton();
     return true;
   } catch (e) {
     console.warn('loadInfo failed:', e);
@@ -3517,6 +3570,7 @@ function renderChat({ scrollToBottom = false, scrollToTop = false } = {}) {
     ? (cmp.activeIsIntervened ? diff.changedInt : diff.changedBase)
     : null;
   const diffClass = cmp && cmp.activeIsIntervened ? 'diff-new' : 'diff-old';
+  const eraseTarget = eraseCompareTarget();
   state.messages.forEach((m, mi) => {
     const wrap = document.createElement('div');
     wrap.className = 'msg ' + m.role;
@@ -3525,6 +3579,24 @@ function renderChat({ scrollToBottom = false, scrollToTop = false } = {}) {
     role.textContent = m.role === 'user' ? 'You'
       : m.role === 'tool' ? `Tool · ${m.name || '?'}` : 'Assistant';
     if (m.role === 'tool') appendToolSourceBadge(role, mi);
+    if (m.erase) {
+      const badge = document.createElement('span');
+      badge.className = 'src';
+      badge.textContent = 'erase';
+      badge.title = eraseSummary(m.erase);
+      role.appendChild(badge);
+    }
+    if (m.role === 'user' && eraseTarget && mi === eraseTarget.userIdx) {
+      const ab = document.createElement('button');
+      ab.className = 'fixture-btn erase-ab';
+      ab.type = 'button';
+      ab.textContent = 'A/B erase';
+      ab.title = eraseTarget.erase
+        ? `Re-run this turn with the erase on and compare. ${eraseSummary(eraseTarget.erase)}`
+        : 'Re-run this turn with the erase off and compare';
+      ab.onclick = (e) => { e.stopPropagation(); compareErase(); };
+      role.appendChild(ab);
+    }
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
     if (m.tokens.length === 0) {
@@ -6228,6 +6300,11 @@ function applyUiState() {
   settingsModal.inert = !settingsOpen;
   settingsModal.setAttribute('aria-hidden', String(!settingsOpen));
   settingsModal.classList.toggle('visible', settingsOpen);
+  const eraseModal = $('erase-backdrop');
+  const eraseOpen = ui.popover === 'erase';
+  eraseModal.inert = !eraseOpen;
+  eraseModal.setAttribute('aria-hidden', String(!eraseOpen));
+  eraseModal.classList.toggle('visible', eraseOpen);
   const toolsModal = $('tools-backdrop');
   const toolsOpen = ui.popover === 'tools';
   toolsModal.inert = !toolsOpen;
@@ -6440,7 +6517,9 @@ async function sendMessage() {
   // A new turn retires any open A/B compare: the currently ACTIVE variant
   // becomes the single timeline (deliberate fork semantics).
   retireCompare();
-  state.messages.push({ role: 'user', content, tokens: [], prefillSnapshotId: null });
+  const erase = eraseStamp();
+  state.messages.push({ role: 'user', content, tokens: [], prefillSnapshotId: null,
+                        ...(erase ? { erase } : {}) });
   // Stamp the turn with its thinking mode so an intervention re-run replays
   // the same template even if the setting changes afterwards.
   const thinking = !agentActive() && !!state.settings.enableThinking;
@@ -6466,9 +6545,9 @@ async function sendMessage() {
   // Agent cases carry their own run.enable_thinking.
   if (agentActive()) payload.case_id = state.agent.caseId;
   else payload.enable_thinking = thinking;
-  if (state.appliedInterventions.length) {
-    payload.interventions = state.appliedInterventions.map(specToPayload);
-  }
+  const specs = state.appliedInterventions.map(specToPayload);
+  if (erase) specs.push(eraseToPayload(erase));
+  if (specs.length) payload.interventions = specs;
   setChatInputValue('');
   await streamChat(payload);
 }
@@ -6662,12 +6741,18 @@ function canRunRecipe(recipe) {
   return !!recipeBaselineRun(recipe);
 }
 
+// `erase` replaces the turn's erase in the re-run (null = none); left
+// undefined, the baseline turn's erase rides along so the compare isolates
+// the new specs. `baselineLabel` names the baseline side of the A/B toggle.
 async function rerunWithSpecs(specs, {
   tempOverride = null,
   baseline = null,
   configurationLabel = 'Intervened',
+  erase,
+  baselineLabel = '',
 } = {}) {
-  if (isPresentation() || state.streaming || !interventionsAvailable() || !specs.length) return;
+  if (isPresentation() || state.streaming || !interventionsAvailable()) return;
+  if (!specs.length && erase === undefined) return;
   baseline = baseline || captureRun();
   const last = baseline.messages?.[baseline.messages.length - 1];
   if (!last || last.role !== 'assistant' || !last.tokens?.length) return;
@@ -6686,7 +6771,13 @@ async function rerunWithSpecs(specs, {
   state.messages = baseline.messages.slice(0, msgIdx).map(m => ({
     role: m.role, content: m.content, tokens: [], prefillSnapshotId: null,
     ...(m.name ? { name: m.name } : {}),
+    ...(m.erase ? { erase: m.erase } : {}),
   }));
+  if (erase === undefined) erase = baseline.messages[msgIdx - 1]?.erase || null;
+  const turnUser = state.messages[msgIdx - 1];
+  if (turnUser) {
+    if (erase) turnUser.erase = erase; else delete turnUser.erase;
+  }
   const thinking = !agentCaseId && !!last.thinking;
   state.messages.push({ role: 'assistant', content: '', tokens: [], prefillSnapshotId: null,
                         ...(thinking ? { thinking: true } : {}) });
@@ -6703,6 +6794,7 @@ async function rerunWithSpecs(specs, {
     specs,
     baselineHadInterventions: (baseline.appliedInterventions || []).length > 0,
     configurationLabel,
+    baselineLabel,
     other: baseline,
     diff: null,
   };
@@ -6725,7 +6817,7 @@ async function rerunWithSpecs(specs, {
     temp: tempOverride === null ? state.settings.temp : tempOverride,
     top_n: state.settings.topN,
     ...(agentCaseId ? {} : { enable_thinking: thinking }),
-    interventions: specs.map(specToPayload),
+    interventions: [...specs.map(specToPayload), ...(erase ? [eraseToPayload(erase)] : [])],
   };
   const ok = await streamChat(payload);
   if (!ok) {
@@ -6871,7 +6963,8 @@ function renderVariantToggle() {
   el.hidden = false;
   const base = el.querySelector('#variant-baseline');
   const inter = el.querySelector('#variant-intervened');
-  base.querySelector('span').textContent = c.baselineHadInterventions ? 'Run A' : 'Baseline';
+  base.querySelector('span').textContent =
+    c.baselineLabel || (c.baselineHadInterventions ? 'Run A' : 'Baseline');
   inter.querySelector('span').textContent = c.configurationLabel || 'Intervened';
   base.classList.toggle('active', !c.activeIsIntervened);
   inter.classList.toggle('active', c.activeIsIntervened);
@@ -7463,9 +7556,10 @@ function openWishForReplyToken(msgIdx, tokenIdx) {
     dismissWishPopover();
     return false;
   }
-  // Wish search replays the turn with thinking off (the server requires it),
-  // which would not reproduce a thinking conversation's prompt.
-  if (state.settings.enableThinking || conversationHasThinking()) {
+  // Wish search replays the turn with thinking off (the server requires it)
+  // and without the erase, so it would not reproduce either kind of run.
+  if (state.settings.enableThinking || conversationHasThinking() ||
+      eraseActive() || state.messages.some(msg => msg.erase)) {
     dismissWishPopover();
     return false;
   }
@@ -8437,6 +8531,7 @@ document.addEventListener('keydown', (e) => {
   // mode owns the screen.
   if (ui.popover === 'settings') { cancelSettings(); return; }
   if (ui.popover === 'tools') { closeToolsModal(); return; }
+  if (ui.popover === 'erase') { closeEraseModal(); return; }
   if (ui.popover === 'sessionsMenu') { closeSessionsMenu(); return; }
   if (ui.mode.kind === 'editor' || ui.mode.kind === 'recipePreview') {
     cancelInterventionEditor();
@@ -9220,9 +9315,288 @@ $('agent-enabled').onchange = (e) => {
   });
 }
 
+// ----- Erase: ablate a concept set on every new message -----
+// One ablate spec over the concepts' single-token spellings, scoped to the
+// whole sequence (from_position 0) or the generated tokens. The server
+// re-prefills every request, so the erase covers the full context each turn.
+const ERASE_KEY = 'jlens-erase-v1';
+let _eraseResolve = { seq: 0, words: null, tokens: [], skipped: [] };
+let _eraseResolveTimer = null;
+
+function eraseActive() {
+  const e = state.erase;
+  return !!(e.enabled && e.tokens.length && e.layers.length) && interventionsAvailable();
+}
+
+// Frozen copy stamped on the user turn (and replayed by re-runs).
+function eraseStamp() {
+  return state.erase.enabled ? eraseConfigStamp() : null;
+}
+
+// The configured erase whether or not it is switched on (for A/B).
+function eraseConfigStamp() {
+  const e = state.erase;
+  if (!e.tokens.length || !e.layers.length || !interventionsAvailable()) return null;
+  return { words: erasedWords(e), layers: [...e.layers], scope: e.scope,
+           alpha: e.alpha, tokens: e.tokens.map(t => ({ ...t })) };
+}
+
+function eraseToPayload(e) {
+  return {
+    mode: 'ablate', layers: e.layers, alpha: e.alpha,
+    ablate_token_ids: e.tokens.map(t => t.id),
+    ...(e.scope === 'generation' ? { segment: 'generation' } : { from_position: 0 }),
+  };
+}
+
+function eraseWords(text) {
+  return [...new Set(String(text || '').split(/[,\n]/).map(w => w.trim()).filter(Boolean))];
+}
+
+// Words that resolved to at least one token (skipped ones erase nothing).
+function erasedWords(e) {
+  return eraseWords(e.words).filter(w => !(e.skipped || []).includes(w));
+}
+
+function eraseSummary(e) {
+  const words = Array.isArray(e.words) ? e.words : erasedWords(e);
+  return `Erase ${words.join(', ')} · ${e.tokens.length} token(s) · L${formatLayers(e.layers)} · ` +
+    `${e.scope === 'generation' ? 'generated tokens' : 'every token'} · strength ${Number(e.alpha).toFixed(2)}`;
+}
+
+function parseLayers(text) {
+  const out = new Set();
+  for (const part of String(text).split(',').map(p => p.trim()).filter(Boolean)) {
+    const m = part.match(/^(\d+)\s*(?:-\s*(\d+))?$/);
+    if (!m) throw new Error(`Bad layer entry "${part}"`);
+    const a = +m[1], b = m[2] !== undefined ? +m[2] : a;
+    for (let l = Math.min(a, b); l <= Math.max(a, b); l++) out.add(l);
+  }
+  return [...out].sort((x, y) => x - y);
+}
+
+function formatLayers(layers) {
+  const runs = [];
+  for (const l of layers) {
+    const last = runs[runs.length - 1];
+    if (last && l === last[1] + 1) last[1] = l; else runs.push([l, l]);
+  }
+  return runs.map(([a, b]) => a === b ? `${a}` : `${a}-${b}`).join(',');
+}
+
+// Every single-token spelling of each word: bare / leading space, as typed
+// / capitalized. Multi-token spellings are skipped — a word's first BPE
+// piece is not the concept.
+async function resolveEraseTokens(words) {
+  const tokens = new Map();
+  const skipped = [];
+  for (const word of words) {
+    const cap = word[0].toUpperCase() + word.slice(1);
+    let found = false;
+    for (const text of new Set([word, ' ' + word, cap, ' ' + cap])) {
+      const resp = await fetch(API + '/api/tokenize', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!resp.ok) throw new Error(await errorDetail(resp));
+      const toks = (await resp.json()).tokens || [];
+      if (toks.length === 1) {
+        tokens.set(toks[0].id, { id: toks[0].id, text: toks[0].text });
+        found = true;
+      }
+    }
+    if (!found) skipped.push(word);
+  }
+  return { tokens: [...tokens.values()], skipped };
+}
+
+function setEraseStatus(text, isError = false) {
+  const el = $('erase-status');
+  el.textContent = text;
+  el.classList.toggle('error', isError);
+}
+
+function renderEraseTokens(res) {
+  const el = $('erase-tokens');
+  if (!res.words || !res.words.length) {
+    el.textContent = 'Comma- or newline-separated. Each word is erased as every single-token spelling (with and without a leading space, lower and capitalized).';
+    return;
+  }
+  const shown = res.tokens.map(t => JSON.stringify(t.text)).join(' · ') || '—';
+  el.textContent = `${res.tokens.length} token(s): ${shown}` +
+    (res.skipped.length ? `  ·  no single-token spelling (skipped): ${res.skipped.join(', ')}` : '');
+}
+
+async function refreshEraseTokens() {
+  const words = eraseWords($('erase-words').value);
+  const seq = ++_eraseResolve.seq;
+  if (!words.length) {
+    _eraseResolve = { seq, words, tokens: [], skipped: [] };
+    renderEraseTokens(_eraseResolve);
+    return _eraseResolve;
+  }
+  try {
+    const res = await resolveEraseTokens(words);
+    if (seq !== _eraseResolve.seq) return null;  // superseded by newer input
+    _eraseResolve = { seq, words, ...res };
+    renderEraseTokens(_eraseResolve);
+    return _eraseResolve;
+  } catch (e) {
+    if (seq === _eraseResolve.seq) setEraseStatus('Could not tokenize: ' + e.message, true);
+    return null;
+  }
+}
+
+// A/B of the last turn with its erase toggled: an erased turn re-runs
+// without it; an unerased turn re-runs with the configured erase. Manual
+// interventions the turn ran with are kept on both sides.
+function eraseCompareTarget() {
+  if (isPresentation() || state.streaming || _ivDraft || !interventionsAvailable()) return null;
+  const last = state.messages[state.messages.length - 1];
+  if (!last || last.role !== 'assistant' || !last.tokens.length) return null;
+  const userIdx = state.messages.map(m => m.role).lastIndexOf('user');
+  const turnErase = state.messages[userIdx]?.erase || null;
+  if (turnErase) {
+    return { userIdx, erase: null, baselineLabel: 'Erase on', configurationLabel: 'Erase off' };
+  }
+  const erase = eraseConfigStamp();
+  return erase
+    ? { userIdx, erase, baselineLabel: 'Erase off', configurationLabel: 'Erase on' }
+    : null;
+}
+
+async function compareErase() {
+  const target = eraseCompareTarget();
+  if (!target) return;
+  const baseline = captureRun();
+  await rerunWithSpecs(baseline.appliedInterventions || [], {
+    baseline,
+    erase: target.erase,
+    baselineLabel: target.baselineLabel,
+    configurationLabel: target.configurationLabel,
+  });
+}
+
+function saveEraseConfig() {
+  try { localStorage.setItem(ERASE_KEY, JSON.stringify(state.erase)); } catch (e) {}
+}
+
+function loadEraseConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ERASE_KEY) || 'null');
+    if (saved && Array.isArray(saved.tokens) && Array.isArray(saved.layers)) {
+      state.erase = {
+        enabled: !!saved.enabled, words: String(saved.words || ''),
+        skipped: Array.isArray(saved.skipped) ? saved.skipped.map(String) : [],
+        layers: saved.layers.filter(Number.isInteger),
+        scope: saved.scope === 'generation' ? 'generation' : 'all',
+        alpha: Number.isFinite(saved.alpha) ? saved.alpha : 1,
+        tokens: saved.tokens.filter(t => t && Number.isInteger(t.id)),
+      };
+    }
+  } catch (e) {}
+  updateEraseButton();
+}
+
+function updateEraseButton() {
+  const on = eraseActive();
+  $('erase-btn').classList.toggle('active', on);
+  $('erase-btn-label').textContent = on ? `Erase · ${erasedWords(state.erase).length}` : 'Erase';
+  $('erase-btn').title = on ? eraseSummary(state.erase) : 'Erase concepts from the residual stream';
+}
+
+function syncEraseAlphaLabel() {
+  const input = $('erase-alpha');
+  updateRangeProgress(input);
+  $('erase-alpha-value').textContent = Number(input.value).toFixed(2);
+}
+
+function openEraseModal() {
+  if (isPresentation() || state.streaming) return;
+  const e = state.erase;
+  $('erase-enabled').checked = e.enabled;
+  $('erase-words').value = e.words;
+  const layers = e.layers.length ? e.layers : wishSearchWorkspaceLayers();
+  $('erase-layers').value = formatLayers(layers);
+  $('erase-scope').value = e.scope;
+  $('erase-alpha').value = e.alpha;
+  syncEraseAlphaLabel();
+  _eraseResolve = { seq: _eraseResolve.seq + 1, words: eraseWords(e.words),
+                    tokens: e.tokens, skipped: e.skipped };
+  renderEraseTokens(_eraseResolve);
+  setEraseStatus(interventionsAvailable() ? '' : 'No J-lens loaded — erase needs the lens.', !interventionsAvailable());
+  uiSetPopover('erase');
+  $('erase-words').focus({ preventScroll: true });
+}
+
+function closeEraseModal() {
+  clearTimeout(_eraseResolveTimer);
+  if (ui.popover === 'erase') uiSetPopover(null);
+  $('erase-btn').focus({ preventScroll: true });
+}
+
+async function applyEraseModal() {
+  let layers;
+  try {
+    layers = parseLayers($('erase-layers').value);
+  } catch (e) {
+    setEraseStatus(e.message, true);
+    return;
+  }
+  const unfitted = layers.filter(l => !layerIntervenable(l));
+  if (unfitted.length) {
+    setEraseStatus(`Layers without a fitted lens: ${formatLayers(unfitted)}`, true);
+    return;
+  }
+  clearTimeout(_eraseResolveTimer);
+  const words = eraseWords($('erase-words').value);
+  const sameWords = _eraseResolve.words &&
+    JSON.stringify(_eraseResolve.words) === JSON.stringify(words);
+  const res = sameWords ? _eraseResolve : await refreshEraseTokens();
+  if (!res) return;
+  const enabled = $('erase-enabled').checked;
+  if (enabled && (!res.tokens.length || !layers.length)) {
+    setEraseStatus('Enable needs at least one concept with a single-token spelling and one layer.', true);
+    return;
+  }
+  state.erase = {
+    enabled, words: $('erase-words').value.trim(), skipped: res.skipped, layers,
+    scope: $('erase-scope').value === 'generation' ? 'generation' : 'all',
+    alpha: Number($('erase-alpha').value),
+    tokens: res.tokens,
+  };
+  saveEraseConfig();
+  updateEraseButton();
+  closeEraseModal();
+}
+
+$('erase-btn').onclick = () => openEraseModal();
+$('erase-cancel').onclick = closeEraseModal;
+$('erase-ok').onclick = () => applyEraseModal();
+$('erase-alpha').addEventListener('input', syncEraseAlphaLabel);
+$('erase-words').addEventListener('input', () => {
+  clearTimeout(_eraseResolveTimer);
+  setEraseStatus('');
+  _eraseResolveTimer = setTimeout(refreshEraseTokens, 350);
+});
+{
+  // Dismiss only when a primary press starts AND ends on the backdrop.
+  const backdrop = $('erase-backdrop');
+  let pressId = null;
+  backdrop.addEventListener('pointerdown', (e) => {
+    pressId = e.isPrimary && e.button === 0 && e.target === e.currentTarget ? e.pointerId : null;
+  });
+  backdrop.addEventListener('pointerup', (e) => {
+    const hit = pressId === e.pointerId && e.target === e.currentTarget;
+    pressId = null;
+    if (hit) closeEraseModal();
+  });
+}
+
 ensureInfoReady();
 loadSettings();
 loadAgentConfig();
+loadEraseConfig();
 applyUiState();
 // A shared link opens its conversation directly; any failure (deleted or
 // renamed session) clears the fragment and falls back to the picker
