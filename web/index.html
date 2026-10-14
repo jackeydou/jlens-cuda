@@ -2578,6 +2578,7 @@ function persistMessage(m) {
   if (m.toolCallId) out.toolCallId = m.toolCallId;
   if (m.toolCalls) out.toolCalls = m.toolCalls.map(({ draft, ...c }) => ({ ...c }));
   if (m.stopReason) out.stopReason = m.stopReason;
+  if (m.thinking) out.thinking = true;
   return out;
 }
 
@@ -2597,6 +2598,7 @@ function reviveMessage(m) {
   if (m.toolCallId) out.toolCallId = m.toolCallId;
   if (Array.isArray(m.toolCalls)) out.toolCalls = m.toolCalls.map(c => ({ ...c }));
   if (m.stopReason) out.stopReason = m.stopReason;
+  if (m.thinking) out.thinking = true;
   return out;
 }
 
@@ -2763,7 +2765,9 @@ function restoreConversation(saved) {
     : [];
   state.sourceSessionId = saved.sourceSessionId || null;
   if (saved.settings) {
-    state.settings = { ...state.settings, ...saved.settings };
+    // Conversations saved before the toggle existed ran with thinking off.
+    state.settings = { ...state.settings, ...saved.settings,
+                       enableThinking: !!saved.settings.enableThinking };
     syncSettingsInputs();
     saveSettings();
   }
@@ -6437,7 +6441,11 @@ async function sendMessage() {
   // becomes the single timeline (deliberate fork semantics).
   retireCompare();
   state.messages.push({ role: 'user', content, tokens: [], prefillSnapshotId: null });
-  state.messages.push({ role: 'assistant', content: '', tokens: [], prefillSnapshotId: null });
+  // Stamp the turn with its thinking mode so an intervention re-run replays
+  // the same template even if the setting changes afterwards.
+  const thinking = !agentActive() && !!state.settings.enableThinking;
+  state.messages.push({ role: 'assistant', content: '', tokens: [], prefillSnapshotId: null,
+                        ...(thinking ? { thinking: true } : {}) });
   // Freeze the enabled specs as this run's applied set (grid badges).
   state.appliedInterventions = enabledInterventions().map(persistSpec);
   state.streaming = true;
@@ -6457,7 +6465,7 @@ async function sendMessage() {
   };
   // Agent cases carry their own run.enable_thinking.
   if (agentActive()) payload.case_id = state.agent.caseId;
-  else payload.enable_thinking = !!state.settings.enableThinking;
+  else payload.enable_thinking = thinking;
   if (state.appliedInterventions.length) {
     payload.interventions = state.appliedInterventions.map(specToPayload);
   }
@@ -6679,7 +6687,9 @@ async function rerunWithSpecs(specs, {
     role: m.role, content: m.content, tokens: [], prefillSnapshotId: null,
     ...(m.name ? { name: m.name } : {}),
   }));
-  state.messages.push({ role: 'assistant', content: '', tokens: [], prefillSnapshotId: null });
+  const thinking = !agentCaseId && !!last.thinking;
+  state.messages.push({ role: 'assistant', content: '', tokens: [], prefillSnapshotId: null,
+                        ...(thinking ? { thinking: true } : {}) });
   state.snapshots = [];
   state.gridRows = [];
   state.gridTokenStrs = [];
@@ -6714,7 +6724,7 @@ async function rerunWithSpecs(specs, {
     // that verification even when the normal composer uses sampling.
     temp: tempOverride === null ? state.settings.temp : tempOverride,
     top_n: state.settings.topN,
-    ...(agentCaseId ? {} : { enable_thinking: !!state.settings.enableThinking }),
+    ...(agentCaseId ? {} : { enable_thinking: thinking }),
     interventions: specs.map(specToPayload),
   };
   const ok = await streamChat(payload);

@@ -684,11 +684,20 @@ def _split_reasoning(text: str) -> tuple[str, str]:
     return "\n\n".join(parts), rest.strip()
 
 
-def _template_messages(messages: list[ChatMessage]) -> list[dict[str, str]]:
-    """ChatMessages -> chat-template dicts, reasoning split off assistant turns."""
+def _template_messages(
+    messages: list[ChatMessage], enable_thinking: bool,
+) -> list[dict[str, str]]:
+    """ChatMessages -> chat-template dicts, reasoning split off assistant turns.
+
+    Only a thinking-mode generation or a replayed turn (which the server
+    always emits starting with its <think> block) has a reasoning
+    terminator; a fresh non-thinking reply is left whole so a literal
+    "</think>" in the answer text is not mistaken for one.
+    """
     out = []
     for m in messages:
-        if m.role == "assistant" and m.content:
+        if m.role == "assistant" and m.content and (
+                enable_thinking or m.content.lstrip().startswith("<think>")):
             reasoning, answer = _split_reasoning(m.content)
             out.append({"role": m.role, "content": answer,
                         "reasoning_content": reasoning})
@@ -1347,7 +1356,7 @@ async def chat_stream(req: ChatStreamRequest):
                 if any(r["segment"] == "generation" for r in resolved_specs):
                     last = eff_messages[-1]
                     if last.role == "assistant" and not last.content:
-                        pm = _template_messages(eff_messages[:-1])
+                        pm = _template_messages(eff_messages[:-1], req.enable_thinking)
                         pids = tok.apply_chat_template(
                             pm, add_generation_prompt=True,
                             enable_thinking=req.enable_thinking)
@@ -1425,7 +1434,7 @@ async def chat_stream(req: ChatStreamRequest):
             for msg_idx in range(n_to_process):
                 msg = eff_messages[msg_idx]
                 # Apply the template for messages[0..msg_idx] without generation prompt.
-                prefix_msgs = _template_messages(eff_messages[:msg_idx + 1])
+                prefix_msgs = _template_messages(eff_messages[:msg_idx + 1], req.enable_thinking)
                 formatted_ids = tok.apply_chat_template(prefix_msgs, add_generation_prompt=False, enable_thinking=req.enable_thinking)
                 if isinstance(formatted_ids, list):
                     formatted_ids_list = formatted_ids
@@ -1477,7 +1486,7 @@ async def chat_stream(req: ChatStreamRequest):
                 msg_idx = len(eff_messages) - 1
                 # Apply the template with add_generation_prompt=True to get
                 # the generation prefix (ends with <|im_start|>assistant\n...).
-                prefix_msgs = _template_messages(eff_messages[:-1])
+                prefix_msgs = _template_messages(eff_messages[:-1], req.enable_thinking)
                 gen_prefix_ids = tok.apply_chat_template(prefix_msgs, add_generation_prompt=True, enable_thinking=req.enable_thinking)
                 if isinstance(gen_prefix_ids, list):
                     gen_prefix_list = gen_prefix_ids
