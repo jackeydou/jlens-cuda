@@ -79,6 +79,28 @@ the Tools editor work; generation endpoints return 503. The GPU server reads
 JLENS_NO_MODEL=1 uv run uvicorn jlens_qwen.serve:app --host 127.0.0.1 --port 8765
 ```
 
+## Publishing saved sessions (GitHub Pages)
+
+`scripts/export_static.py` turns saved sessions (`data/sessions/*.json`) into a
+static, read-only site: one `index.html` (presentation mode) plus gzipped,
+chunked session payloads. No server or model is needed to view it, and each
+conversation has a shareable `#session=<id>` link.
+
+```bash
+uv run python scripts/export_static.py --out site --clean    # all saved sessions
+python -m http.server -d site 8000                           # preview locally
+```
+
+By default the sensory band (L0–L18) is left out of every grid (the UI shows it as
+one "not shown in this export" placeholder column), which cuts the payload by
+about a third; `--min-layer 0` keeps all layers (or set another
+cutoff). Pass session files to export a subset. Pass `--server http://127.0.0.1:8765` to
+copy the model/lens metadata (including measured bands) from a running server;
+otherwise it is inferred from the sessions plus `--model-id` / `--bands`. To
+publish, push the contents of `site/` to a GitHub Pages branch (e.g. `gh-pages`)
+or to the `docs/` folder Pages serves from. GitHub rejects files over 100 MB;
+the exporter keeps every chunk well under that.
+
 ## Tests
 
 `uv run pytest` runs on a laptop (no GPU, no weights): upstream's serve-logic

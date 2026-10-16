@@ -471,6 +471,15 @@ JLENS_PATH=data/lens/qwen38_27b_n1000.npz uv run uvicorn jlens_qwen.serve:app --
 
 **只读展示模式：** `JLENS_MODE=presentation` 启动后，UI 隐藏所有编辑功能、只能浏览已保存的会话（原项目 jlens.wezzard.com 用的就是这个模式）。
 
+**发布到 GitHub Pages：** `scripts/export_static.py` 把 `data/sessions/*.json` 导出成一个纯静态的只读站点（一个 `index.html` + 分块 gzip 的会话数据），不需要服务器和模型，每个会话都有 `#session=<id>` 分享链接：
+
+```bash
+uv run python scripts/export_static.py --out site --clean    # 导出全部已保存会话；也可以只传部分会话文件
+python -m http.server -d site 8000                           # 本地预览
+```
+
+默认不导出 Sensory 区（L0–L18）的网格列，界面上用一个“Not shown in this export”占位列表示，体积约小三分之一；要保留全部层用 `--min-layer 0`。服务在跑时加 `--server http://127.0.0.1:8765` 可以把模型/lens 元数据（含实测 bands）一起带上。把 `site/` 的内容推到 Pages 分支（如 `gh-pages`）即可。
+
 **不想等拟合、先体验 Web App？** 用 Neuronpedia 的 Qwen3.6-27B n=1000 lens 搭配 Qwen3.6-27B（注意必须配对！），`.pt` 可以直接加载：
 
 ```bash
