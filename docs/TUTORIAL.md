@@ -478,7 +478,7 @@ uv run python scripts/export_static.py --out site --clean    # 导出全部已�
 python -m http.server -d site 8000                           # 本地预览
 ```
 
-默认不导出 Sensory 区（L0–L18）的网格列，界面上用一个“Not shown in this export”占位列表示，体积约小三分之一；要保留全部层用 `--min-layer 0`。服务在跑时加 `--server http://127.0.0.1:8765` 可以把模型/lens 元数据（含实测 bands）一起带上。把 `site/` 的内容推到 Pages 分支（如 `gh-pages`）即可。
+默认不导出 Sensory 区（L0–L18）的网格列，界面上用一个“Not shown in this export”占位列表示，体积约小三分之一；要保留全部层用 `--min-layer 0`。服务在跑时加 `--server http://127.0.0.1:8765` 可以把模型/lens 元数据（含实测 bands）一起带上。一个站点只有一套模型/层信息，用不同模型或 lens 录的会话会被拒绝，需要分开导出成不同站点。把 `site/` 的内容推到 Pages 分支（如 `gh-pages`）即可。
 
 **不想等拟合、先体验 Web App？** 用 Neuronpedia 的 Qwen3.6-27B n=1000 lens 搭配 Qwen3.6-27B（注意必须配对！），`.pt` 可以直接加载：
 
