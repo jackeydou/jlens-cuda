@@ -6,6 +6,7 @@ data/lens/*
 !data/lens/.gitkeep
 data/corpus/*.jsonl
 data/sessions/
+/site/
 data/bands/*.json
 .claude/launch.json
 slurm/hpc.env

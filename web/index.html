@@ -1259,12 +1259,47 @@
   #grid-body {
     position: relative; z-index: 1;
     flex: 1; overflow: auto;
-    padding: 0 0 var(--grid-bottom-clearance) var(--grid-left-inset);
+    /* --grid-omitted-w reserves room for the omitted-layers placeholder;
+       column geometry reads paddingLeft, so it needs no other changes. */
+    padding: 0 0 var(--grid-bottom-clearance)
+      calc(var(--grid-left-inset) + var(--grid-omitted-w, 0px));
     scroll-padding-bottom: var(--grid-bottom-clearance);
     background: transparent;
     /* Keep the vertical-scrollbar gutter reserved even when rows don't
        overflow yet, so the sticky TOKEN column never shifts. */
     scrollbar-gutter: stable;
+  }
+  /* Placeholder for layers a static export left out (state.omittedLayers):
+     one narrow hatched column left of the first layer. Its header and note
+     stick to the top so they stay readable at any scroll depth. */
+  #grid-omitted {
+    position: absolute; left: 0; top: 0; z-index: 3;
+    box-sizing: border-box;
+    border-right: 1px dashed var(--border-2);
+    background: repeating-linear-gradient(135deg,
+      var(--surface-2) 0 6px, var(--paper-bg) 6px 12px);
+    color: var(--text-2);
+    text-align: center;
+  }
+  #grid-omitted .omitted-head {
+    position: sticky; top: 0;
+    height: 60px; box-sizing: border-box; padding-top: 10px;
+    background: var(--surface-2);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  #grid-omitted .omitted-range {
+    display: block; margin-top: 6px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; font-weight: 600; text-transform: none;
+    color: var(--text);
+  }
+  #grid-omitted .omitted-note {
+    position: sticky; top: 76px;
+    margin: 16px 8px 0; padding: 8px 4px;
+    border-radius: 6px;
+    background: var(--paper-bg);
+    font-size: 10px; line-height: 1.4;
   }
   /* NATIVE scrollbars on purpose — do not add ::-webkit-scrollbar rules
      here: ANY use of that pseudo-element switches WebKit/Blink to classic
@@ -1531,22 +1566,6 @@
   #detail .readout .row.top1 .tok,
   #detail .readout .row.top1 .score-value { color: var(--highlight-orange); font-weight: 600; }
   #detail .readout .row.top1 .bar > div { background: var(--highlight-orange); }
-  /* Signature, bottom center of the detail card. --text-2 (#6b6450) is
-     the midpoint of the token text color (--text) and the ID color
-     (--text-3). */
-  #detail .signature {
-    margin-top: 12px;
-    text-align: center;
-    font-size: 10px;
-    color: var(--text-2);
-    letter-spacing: 0.02em;
-  }
-  #detail .signature a {
-    color: inherit;
-    font-weight: 600;
-    text-decoration: none;
-  }
-  #detail .signature a:hover { text-decoration: underline; }
   #detail .close {
     position: absolute; top: 8px; right: 10px;
     border: none; background: transparent; color: var(--text-3);
@@ -2509,6 +2528,9 @@ let state = {
   snapshotByMsgToken: new Map(),
   // Token markups: [{pos, layer, token}] bookmarks into the J-Space grid.
   markups: [],
+  // {start, end}: layers a static export left out of the grid (see
+  // scripts/export_static.py --min-layer); drawn as one placeholder column.
+  omittedLayers: null,
   // J-space intervention specs authored in the UI (persisted):
   // [{id, enabled, mode, token, tokenId, target, targetId, alpha,
   //   layers:[int], scope:{type:'at'|'from'|'gen', pos?}, origin,
@@ -2685,6 +2707,7 @@ function serializableConversation({ trimForLocalStorage = false } = {}) {
     } : null,
     sourceSessionId: state.sourceSessionId,
     agentRun: state.agentRun,
+    omittedLayers: state.omittedLayers,
   };
   if (trimForLocalStorage) {
     let json = JSON.stringify(persistable);
@@ -2797,6 +2820,10 @@ function restoreConversation(saved) {
   // replayed into compare.other below, never into the live run.
   state.snapshots = allSnaps.filter(sn => !sn.variant);
   state.layers = saved.layers || [];
+  const omitted = saved.omittedLayers;
+  state.omittedLayers = omitted && Number.isInteger(omitted.start) &&
+    Number.isInteger(omitted.end) && omitted.start <= omitted.end
+    ? { start: omitted.start, end: omitted.end } : null;
   state.markups = Array.isArray(saved.markups)
     ? saved.markups
         .filter(m => m && Number.isFinite(m.pos) && Number.isFinite(m.layer))
@@ -3018,6 +3045,7 @@ function clearState() {
   state.gridTokenStrs = [];
   state.gridTokenMsgs = [];
   state.layers = [];
+  state.omittedLayers = null;
   state.markups = [];
   state.interventions = [];
   state.interventionRecipes = [];
@@ -4264,6 +4292,30 @@ const GRID_ROW_BUFFER = 30;
 // tokens ellipsize inside their block instead of stretching the column.
 const GRID_CELL_W = 128;
 const GRID_POS_W = 140;
+const GRID_OMITTED_W = 96;
+
+// Placeholder column for state.omittedLayers, living in #grid-body's left
+// padding (widened by --grid-omitted-w) and sized to the table's height.
+let _omittedResize = null;
+function renderOmittedLayers(body, table) {
+  if (_omittedResize) { _omittedResize.disconnect(); _omittedResize = null; }
+  const omitted = table && state.omittedLayers;
+  body.style.setProperty('--grid-omitted-w', omitted ? GRID_OMITTED_W + 'px' : '0px');
+  if (!omitted) return;
+  const range = omitted.start === omitted.end
+    ? `L${omitted.start}` : `L${omitted.start}–L${omitted.end}`;
+  const ph = document.createElement('div');
+  ph.id = 'grid-omitted';
+  ph.style.width = GRID_OMITTED_W + 'px';
+  ph.title = `Layers ${range} are not included in this export.`;
+  ph.innerHTML = `<div class="omitted-head">Omitted<span class="omitted-range">${range}</span></div>` +
+    '<div class="omitted-note">Not shown in this export</div>';
+  body.appendChild(ph);
+  const fit = () => { ph.style.height = table.offsetHeight + 'px'; };
+  fit();
+  _omittedResize = new ResizeObserver(fit);
+  _omittedResize.observe(table);
+}
 
 function _gridSpacerHtml(heightPx, nCols) {
   return `<tr class="grid-spacer"><td colspan="${nCols}" ` +
@@ -4274,6 +4326,7 @@ function renderGrid({ focusSelection = false, keepScroll = false } = {}) {
   const body = $('grid-body');
   if (state.gridRows.length === 0 || state.layers.length === 0) {
     body.innerHTML = '';
+    renderOmittedLayers(body, null);
     body.classList.remove('scrolled-y', 'covering-x');
     updateGridBandChrome();
     renderMinimap();
@@ -4406,6 +4459,7 @@ function renderGrid({ focusSelection = false, keepScroll = false } = {}) {
   table.dataset.layerCount = state.layers.length;
   body.innerHTML = '';
   body.appendChild(table);
+  renderOmittedLayers(body, table);
 
   // Calibrate the row height from a real rendered row (used for spacer
   // geometry and window placement on subsequent renders).
@@ -6004,7 +6058,6 @@ function renderDetail() {
   const cell = state.gridRows[pos] && state.gridRows[pos][layer];
   if (!cell) {
     col.appendChild(document.createTextNode('No readout at this position.'));
-    appendDetailSignature(col);
     col.classList.add('visible');
     return;
   }
@@ -6131,15 +6184,7 @@ function renderDetail() {
   });
   readout.appendChild(body);
   col.appendChild(readout);
-  appendDetailSignature(col);
   col.classList.add('visible');
-}
-
-function appendDetailSignature(col) {
-  const sig = document.createElement('div');
-  sig.className = 'signature';
-  sig.innerHTML = 'Designed by <a href="https://github.com/WeZZard" target="_blank" rel="noopener">WeZZard</a>';
-  col.appendChild(sig);
 }
 
 // ----- Timeline rendering -----
