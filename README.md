@@ -96,7 +96,9 @@ one "not shown in this export" placeholder column), which cuts the payload by
 about a third; `--min-layer 0` keeps all layers (or set another
 cutoff). Pass session files to export a subset. Pass `--server http://127.0.0.1:8765` to
 copy the model/lens metadata (including measured bands) from a running server;
-otherwise it is inferred from the sessions plus `--model-id` / `--bands`. To
+otherwise it is inferred from the sessions plus `--model-id` / `--bands`. A site
+carries one metadata set, so sessions recorded with a different model or lens
+are rejected; export them to separate sites. To
 publish, push the contents of `site/` to a GitHub Pages branch (e.g. `gh-pages`)
 or to the `docs/` folder Pages serves from. GitHub rejects files over 100 MB;
 the exporter keeps every chunk well under that.

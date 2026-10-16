@@ -8,6 +8,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 _spec = importlib.util.spec_from_file_location("export_static", ROOT / "scripts" / "export_static.py")
 export_static = importlib.util.module_from_spec(_spec)
@@ -52,7 +54,6 @@ def test_export_layout_chunks_and_baked_manifest(tmp_path, monkeypatch):
 
     monkeypatch.setattr(export_static, "FIRST_CHUNK_BYTES", 4000)
     monkeypatch.setattr(export_static, "CHUNK_BYTES", 8000)
-    monkeypatch.setattr(export_static, "BANDS_DIR", tmp_path / "no-bands")
     monkeypatch.setattr("sys.argv", ["export_static.py", "--out", str(out), "--min-layer", "0",
                                      *map(str, sorted(src.glob("*.json")))])
     export_static.main()
@@ -106,6 +107,40 @@ def test_default_export_drops_the_sensory_band(tmp_path, monkeypatch):
     meta = json.loads((out / "meta.json").read_text())
     assert meta["model"]["n_layers"] == 64
     assert meta["lens"]["source_layers"] == [19, 40]
+
+
+def test_mixed_layer_layouts_are_rejected_before_writing(tmp_path, monkeypatch):
+    a, b = tmp_path / "a.json", tmp_path / "b.json"
+    _session(a, 2, "Hi")
+    data = _session(b, 2, "Yo")
+    data["layers"] = [0, 10, 19, 40, 47]  # a shallower model
+    b.write_text(json.dumps(data))
+    out = tmp_path / "site"
+    out.mkdir()
+    (out / "keep.txt").write_text("previous export")
+    monkeypatch.setattr("sys.argv", ["export_static.py", "--out", str(out), "--clean", str(a), str(b)])
+    with pytest.raises(SystemExit, match="different layer layouts"):
+        export_static.main()
+    assert (out / "keep.txt").exists()
+
+
+def test_server_metadata_must_match_the_sessions(tmp_path, monkeypatch):
+    src = tmp_path / "s.json"
+    _session(src, 2, "Hi")
+    other_lens = {"model": {"model_id": "m", "n_layers": 64},
+                  "lens": {"source_layers": list(range(63)), "bands": []}}
+    monkeypatch.setattr(export_static, "fetch_server_meta", lambda url: other_lens)
+    monkeypatch.setattr("sys.argv", ["export_static.py", "--out", str(tmp_path / "site"),
+                                     "--server", "http://x", str(src)])
+    with pytest.raises(SystemExit, match="different model or lens"):
+        export_static.main()
+
+    same_lens = {"model": {"model_id": "m", "n_layers": 64},
+                 "lens": {"source_layers": [0, 10, 19, 40], "bands": []}}
+    monkeypatch.setattr(export_static, "fetch_server_meta", lambda url: same_lens)
+    export_static.main()
+    meta = json.loads((tmp_path / "site" / "meta.json").read_text())
+    assert meta["model"]["mode"] == "presentation"
 
 
 def test_presentation_loader_contract():

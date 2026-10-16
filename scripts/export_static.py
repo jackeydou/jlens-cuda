@@ -22,7 +22,10 @@ UI shows them as one "not shown in this export" placeholder column. Pass
 
 Metadata (model id, layer count, functional bands) comes from a running
 server when --server is given; otherwise it is inferred from the sessions'
-recorded layers plus --model-id / --bands.
+recorded layers plus --model-id / --bands. The UI loads ONE metadata set
+for the whole site, so every exported session must share one layer layout
+(same model and lens); export differently recorded sessions to separate
+sites.
 
 Run:
     python scripts/export_static.py --out site
@@ -44,7 +47,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 TEMPLATE = REPO / "web" / "index.html"
 SESSIONS_DIR = REPO / "data" / "sessions"
-BANDS_DIR = REPO / "data" / "bands"
 AUTOSAVE_ID = "autosave-latest.json"
 MODE_LINE = 'window.JLENS_MODE = "active";'
 
@@ -127,23 +129,45 @@ def fetch_server_meta(server: str) -> dict:
 
 
 def resolve_bands(arg: str | None) -> list[dict] | None:
-    if arg == "none":
+    # Explicit only: session files don't name their lens, so a bands file
+    # can't be matched to them the way serve.py matches <lens_stem>.json.
+    if not arg or arg == "none":
         return None
-    if arg:
-        path = Path(arg)
-    else:
-        candidates = sorted(BANDS_DIR.glob("*.json"))
-        if len(candidates) != 1:
-            if candidates:
-                print(f"BANDS: {len(candidates)} files in {BANDS_DIR}; pass --bands "
-                      "to choose one. Using the UI's fallback split.", file=sys.stderr)
-            return None
-        path = candidates[0]
-        print(f"BANDS: using the only bands file, {path.name}", file=sys.stderr)
+    path = Path(arg)
     bands = json.loads(path.read_text()).get("bands")
     if not isinstance(bands, list) or not bands:
         raise SystemExit(f"{path}: no 'bands' list")
     return bands
+
+
+def require_one_layout(raw: list[tuple[Path, dict]]) -> list[int]:
+    """The recorded layer layout shared by every session; exit if they differ."""
+    layouts: dict[tuple[int, ...], list[str]] = {}
+    for path, data in raw:
+        key = tuple(sorted(int(l) for l in data.get("layers") or []))
+        layouts.setdefault(key, []).append(path.name)
+    if len(layouts) > 1:
+        lines = [f"  L{k[0]}..L{k[-1]} ({len(k)} layers): {', '.join(v)}" if k
+                 else f"  (no layers): {', '.join(v)}" for k, v in layouts.items()]
+        raise SystemExit("sessions were recorded with different layer layouts (different "
+                         "model or lens); export each group to its own site:\n"
+                         + "\n".join(lines))
+    return list(next(iter(layouts)))
+
+
+def check_server_layout(meta: dict, layout: list[int]) -> None:
+    """Exit if the server's model/lens would not have recorded these sessions."""
+    n_layers = (meta.get("model") or {}).get("n_layers")
+    if not n_layers:
+        raise SystemExit("--server has no model loaded (JLENS_NO_MODEL?); its metadata "
+                         "can't describe the sessions. Drop --server to infer it.")
+    source = (meta.get("lens") or {}).get("source_layers") or []
+    recorded = sorted(set(source) | {n_layers - 1})  # serve._record_layers
+    if recorded != layout:
+        raise SystemExit(f"--server records L{recorded[0]}..L{recorded[-1]} "
+                         f"({len(recorded)} layers) but the sessions recorded "
+                         f"L{layout[0]}..L{layout[-1]} ({len(layout)} layers); "
+                         "it is serving a different model or lens.")
 
 
 def infer_meta(sessions: list[dict], model_id: str, bands: list[dict] | None) -> dict:
@@ -182,8 +206,8 @@ def main() -> None:
     ap.add_argument("--server", help="read model/lens metadata from this running server")
     ap.add_argument("--model-id", default="Qwen/Qwen3.8-27B",
                     help="model id shown in the UI when --server is not given")
-    ap.add_argument("--bands", help="bands JSON (scripts/measure_bands.py output), or 'none'; "
-                    f"default: the single file in {BANDS_DIR} if there is exactly one")
+    ap.add_argument("--bands", help="bands JSON (scripts/measure_bands.py output) measured for "
+                    "the sessions' lens; default: the UI's fallback split")
     args = ap.parse_args()
 
     paths = args.sessions or sorted(SESSIONS_DIR.glob("*.json"))
@@ -195,6 +219,27 @@ def main() -> None:
     if dupes:
         raise SystemExit(f"duplicate session ids (file names): {sorted(dupes)}")
 
+    # Validate everything before touching the output directory.
+    raw = [(p, json.loads(p.read_text())) for p in paths]
+    layout = require_one_layout(raw)
+    loaded: list[tuple[Path, dict]] = []
+    for path, data in raw:
+        data, lost_markups = drop_layers(data, args.min_layer)
+        if lost_markups:
+            print(f"  {path.name}: dropped {lost_markups} markup(s) below L{args.min_layer}",
+                  file=sys.stderr)
+        loaded.append((path, data))
+    # Newest first, like the live server's listing.
+    loaded.sort(key=lambda item: item[1].get("saved_at") or item[0].name, reverse=True)
+
+    if args.server:
+        meta = fetch_server_meta(args.server)
+        if layout:
+            check_server_layout(meta, layout)
+        meta["model"]["mode"] = "presentation"
+    else:
+        meta = infer_meta([d for _, d in loaded], args.model_id, resolve_bands(args.bands))
+
     out: Path = args.out
     if args.clean and out.exists():
         shutil.rmtree(out)
@@ -203,16 +248,6 @@ def main() -> None:
     # Drop stale chunks so a session that shrank can't leave orphans behind.
     for old in sessions_out.glob("*.gz"):
         old.unlink()
-
-    loaded: list[tuple[Path, dict]] = []
-    for path in paths:
-        data, lost_markups = drop_layers(json.loads(path.read_text()), args.min_layer)
-        if lost_markups:
-            print(f"  {path.name}: dropped {lost_markups} markup(s) below L{args.min_layer}",
-                  file=sys.stderr)
-        loaded.append((path, data))
-    # Newest first, like the live server's listing.
-    loaded.sort(key=lambda item: item[1].get("saved_at") or item[0].name, reverse=True)
 
     manifest = []
     total_bytes = 0
@@ -236,12 +271,6 @@ def main() -> None:
         })
         print(f"  {sid}: {len(snapshots)} snapshots -> {len(chunks)} chunk(s), "
               f"{sum(sizes) / 1e6:.1f} MB (largest {max(sizes) / 1e6:.1f} MB)")
-
-    if args.server:
-        meta = fetch_server_meta(args.server)
-        meta["model"]["mode"] = "presentation"
-    else:
-        meta = infer_meta([d for _, d in loaded], args.model_id, resolve_bands(args.bands))
 
     html = TEMPLATE.read_text()
     if html.count(MODE_LINE) != 1:
